@@ -599,6 +599,15 @@ gitflow_use_current_branch_name() {
 	fi
 }
 
+require_feature_name() {
+	local branch_name
+
+	branch_name="$1"
+	[ -n "$1" ] || branch_name="$NAME"
+
+	startswith "$branch_name" "$HU_PREFIX" || die "Feature names must start with $HU_PREFIX."
+}
+
 gitflow_use_current_branch_version() {
 	local current_branch
 
@@ -637,6 +646,8 @@ gitflow_rename_branch() {
 	if [ -z "$NEW_NAME" ]; then
 		die "No new name given."
 	fi
+
+	require_feature_name "$NEW_NAME"
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then

@@ -163,6 +163,7 @@ F,[no]fetch      Fetch from origin before performing local operation
 	require_clean_working_tree
 	require_base_is_local_branch "$base"
 	gitflow_require_name_arg
+	require_feature_name
 
 	# Update the local repo with remote changes, if asked
 	if flag fetch; then

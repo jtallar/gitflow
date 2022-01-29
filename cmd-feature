@@ -545,7 +545,6 @@ showcommands!    Show git commands while executing them
 	echo
 }
 
-# TODO
 cmd_diff() {
 	OPTIONS_SPEC="\
 git flow feature diff [-h] [<name|nameprefix>]

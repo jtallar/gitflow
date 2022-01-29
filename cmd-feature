@@ -806,7 +806,7 @@ cmd_rename() {
 	OPTIONS_SPEC="\
 git flow feature rename <new_name> [<new_name>]
 
-Rename a given feature branch
+Rename a given feature branch locally
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them

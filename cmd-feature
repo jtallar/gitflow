@@ -199,6 +199,7 @@ F,[no]fetch      Fetch from origin before performing local operation
 	echo
 }
 
+# TODO
 cmd_finish() {
     echo "Not implemented yet"
     exit 1

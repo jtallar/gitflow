@@ -501,7 +501,6 @@ cmd_publish() {
 	echo
 }
 
-# TODO
 cmd_track() {
 	OPTIONS_SPEC="\
 git flow feature track [-h] <name>
@@ -522,11 +521,11 @@ showcommands!    Show git commands while executing them
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 
-	git_do fetch -q "$ORIGIN" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
-	git_remote_branch_exists "$ORIGIN/$BRANCH"
+	git_do fetch -q "origin" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
+	require_remote_branch "origin/$BRANCH"
 
 	# Create tracking branch
-	git_do checkout -b "$BRANCH" "$ORIGIN/$BRANCH" || die "Could not create '$BRANCH'."
+	git_do checkout -b "$BRANCH" "origin/$BRANCH" || die "Could not create '$BRANCH'."
 
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 

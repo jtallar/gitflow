@@ -72,8 +72,8 @@ v,verbose   Verbose (more) output
 	width=$(($width+3-${#PREFIX}))
 
 	for branch in $feature_branches; do
-		base=$(git merge-base "$branch" "$DEVELOP_BRANCH")
-		develop_sha=$(git rev-parse "$DEVELOP_BRANCH")
+		base=$(git merge-base "$branch" "$AUX_MASTER_BRANCH")
+		develop_sha=$(git rev-parse "$AUX_MASTER_BRANCH")
 		branch_sha=$(git rev-parse "$branch")
 		if [ "$branch" = "$current_branch" ]; then
 			printf "* "
@@ -175,8 +175,8 @@ F,[no]fetch      Fetch from origin before performing local operation
 
 	# If the origin branch counterpart exists, assert that the local branch
 	# isn't behind it (to avoid unnecessary rebasing)
-	if git_remote_branch_exists "$ORIGIN/$base"; then
-		require_branches_equal "$base" "$ORIGIN/$base"
+	if git_remote_branch_exists "origin/$base"; then
+		require_branches_equal "$base" "origin/$base"
 	fi
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH" "$base"
@@ -703,7 +703,6 @@ showcommands!    Show git commands while executing them
 	run_post_hook "$NAME" "$REMOTE" "$BRANCH"
 }
 
-# TODO
 cmd_delete() {
 	OPTIONS_SPEC="\
 git flow feature delete [-h] [-f] [-r] <name>
@@ -733,6 +732,18 @@ r,[no]remote     Delete remote branch
 	# Sanity checks
 	require_branch "$BRANCH"
 
+	# Update references from remote
+	git_do fetch -q "origin" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
+
+	# If local branch does not exist, can only remove remote branch
+	if ! git_local_branch_exists "$BRANCH"; then
+		echo "Local branch does not exist. Only attempting to remove remote if required..."
+		if flag remote; then
+			git_remote_branch_delete "$BRANCH"
+		fi
+		exit 0
+	fi
+
 	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
 	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
 
@@ -745,7 +756,7 @@ r,[no]remote     Delete remote branch
 		if git_local_branch_exists "$BASE_BRANCH"; then
 			git_do checkout "$BASE_BRANCH"
 		else
-			git_do checkout "$DEVELOP_BRANCH" || die "Could not check out branch '$DEVELOP_BRANCH'."
+			git_do checkout "$AUX_MASTER_BRANCH" || die "Could not check out branch '$AUX_MASTER_BRANCH'."
 		fi
 	fi
 
@@ -765,7 +776,7 @@ r,[no]remote     Delete remote branch
 		fi
 	fi
 
-	gitflow_config_remove_base_section "$BRANCH"
+	# gitflow_config_remove_base_section "$BRANCH"
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	echo

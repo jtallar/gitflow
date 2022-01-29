@@ -595,7 +595,6 @@ cmd_co() {
 	cmd_checkout "$@"
 }
 
-# TODO
 cmd_rebase() {
 	OPTIONS_SPEC="\
 git flow feature rebase [-h] [-i] [-p] [<name|nameprefix>]
@@ -646,18 +645,6 @@ p,[no]preserve-merges  Preserve merges
 		opts="$opts -p"
 	fi
 	git_do rebase $opts "$BASE_BRANCH"
-}
-
-avoid_accidental_cross_branch_action() {
-	local current_branch
-
-	current_branch=$(git_current_branch)
-	if [ "$BRANCH" != "$current_branch" ]; then
-		warn "Trying to pull from '$BRANCH' while currently on branch '$current_branch'."
-		warn "To avoid unintended merges, git-flow aborted."
-		return 1
-	fi
-	return 0
 }
 
 cmd_pull() {

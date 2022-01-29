@@ -129,7 +129,6 @@ parse_remote_name() {
 	BRANCH=$PREFIX$NAME
 }
 
-# TODO
 cmd_start() {
 	OPTIONS_SPEC="\
 git flow feature start [-h] [-F] <name> [<base>]
@@ -151,8 +150,9 @@ F,[no]fetch      Fetch from origin before performing local operation
 	# Parse arguments
 	parse_args "$@"
 	eval set -- "${FLAGS_ARGV}"
-	base=${2:-$DEVELOP_BRANCH}
+	base=${2:-$AUX_MASTER_BRANCH}
 
+	require_clean_working_tree
 	require_base_is_local_branch "$base"
 	gitflow_require_name_arg
 

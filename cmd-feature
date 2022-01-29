@@ -459,7 +459,6 @@ helper_finish_cleanup() {
 	# echo
 }
 
-# TODO
 cmd_publish() {
 	OPTIONS_SPEC="\
         git flow feature publish [-h] [<name>]

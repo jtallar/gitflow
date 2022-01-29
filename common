@@ -589,9 +589,9 @@ gitflow_use_current_branch_name() {
 
 	current_branch=$(git_current_branch)
 
-	if startswith "$current_branch" "$PREFIX"; then
+	if startswith "$current_branch" "$HU_PREFIX"; then
 		BRANCH=$current_branch
-		NAME=${BRANCH#$PREFIX}
+		NAME=${BRANCH}
 	else
 		warn "The current HEAD is no ${SUBCOMMAND} branch."
 		warn "Please specify a <name> argument."

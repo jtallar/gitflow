@@ -181,7 +181,7 @@ F,[no]fetch      Fetch from origin before performing local operation
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH" "$base"
 
-	gitflow_config_set_base_branch $base $BRANCH
+	# gitflow_config_set_base_branch $base $BRANCH
 
 	# create branch
 	git_do checkout -b "$BRANCH" "$base" || die "Could not create feature branch '$BRANCH'."
@@ -264,8 +264,8 @@ cmd_finish() {
 	# # Sanity checks
 	# require_branch "$BRANCH"
 
-	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	# BASE_BRANCH=${BASE_BRANCH:-$DEVELOP_BRANCH}
+	# # BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
+	# BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
 	# git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
 	# # Detect if we're restoring from a merge conflict
@@ -565,8 +565,8 @@ showcommands!    Show git commands while executing them
 		gitflow_use_current_branch_name
 	fi
 
-	base=$(gitflow_config_get_base_branch $BRANCH)
-	base=${base:-$DEVELOP_BRANCH}
+	# base=$(gitflow_config_get_base_branch $BRANCH)
+	base=${base:-$AUX_MASTER_BRANCH}
 
 	git_do diff "$base...$BRANCH"
 }
@@ -626,8 +626,8 @@ p,[no]preserve-merges  Preserve merges
 	fi
 
 
-	BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$DEVELOP_BRANCH}
+	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
+	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
 
 	warn "Will try to rebase '$NAME' which is based on '$BASE_BRANCH'..."
 	if ! git_config_bool_exists "rebase.autostash"; then
@@ -760,8 +760,8 @@ r,[no]remote     Delete remote branch
 	# Sanity checks
 	require_branch "$BRANCH"
 
-	BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$DEVELOP_BRANCH}
+	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
+	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 

@@ -816,6 +816,80 @@ require_branches_equal() {
 }
 
 #
+# Merge specified branch into current branch
+# 
+# $1 branch - Branch to merge into other branch
+# $2 base - Recipient branch of merge
+#
+# Uses flags squash, no_ff
+#
+# Exits with error if merge conflict
+#
+gitflow_merge_branch_to_base() {
+	local branch base
+	branch="$1"
+	base="$2"
+
+	require_local_branch "$branch"
+	require_local_branch "$base"
+
+	git_do checkout "$base" || die "Could not check out branch '$base'."
+
+	if noflag squash; then
+		if flag no_ff; then
+			git_do merge --no-ff "$branch"
+		else
+			if [ "$(git rev-list -n2 "$base..$branch" | wc -l)" -eq 1 ]; then
+				git_do merge --ff "$branch"
+			else
+				git_do merge --no-ff "$branch"
+			fi
+		fi
+	else
+		git_do merge --squash "$branch"
+		flag squash_info && gitflow_create_squash_message "Merged feature branch '$branch'" "$base" "$branch" > "$DOT_GIT_DIR/SQUASH_MSG_$base"
+		git_do commit
+	fi
+
+	if [ $? -ne 0 ]; then
+		# Oops.. we have a merge conflict!
+		# Write the given $BASE_BRANCH to a temporary file as we will
+		# be needing it later.
+		mkdir -p "$DOT_GIT_DIR/.gitflow"
+		echo "$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$base"
+		echo
+		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
+		echo "    git mergetool"
+		echo "    git commit"
+		echo
+		echo "You can then complete the finish by running it again:"
+		echo "    git flow feature finish $branch"
+		echo
+		exit 1
+	fi
+}
+
+# 
+# Create branch from base
+# 
+# $1 branch - New branch name
+# $2 base - Base branch for new branch. Defaults to current branch
+#
+create_branch() {
+	local branch base
+	branch="$1"
+	base="$2"
+	[ -n "$2" ] || base=$(git_current_branch)
+
+	require_local_branch_absent "$branch"
+	if ! git_local_branch_exists "$base" && ! git_remote_branch_exists "$base"; then
+		die "Branch $base does not exist neither locally or remotely."
+	fi
+
+	git_do checkout -b "$branch" "$base" || die "Could not create branch '$branch' from '$base'."
+}
+
+#
 # Show commands if flag is set.
 #
 git_do() {

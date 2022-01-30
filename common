@@ -729,6 +729,71 @@ require_tag_absent() {
 	git_tag_exists "$1" && die "Tag '$1' already exists. Pick another name."
 }
 
+# Same as require_branches_equal, but does not die and returns
+check_branches_equal() {
+	local compare_refs_result
+
+	require_local_branch "$1"
+	require_remote_branch "$2"
+	git_compare_refs "$1" "$2"
+	compare_refs_result=$?
+
+	if [ $compare_refs_result -gt 0 ]; then
+		warn "Branches '$1' and '$2' have diverged."
+		if [ $compare_refs_result -eq 1 ]; then
+			warn "And branch '$1' may be fast-forwarded."
+		elif [ $compare_refs_result -eq 2 ]; then
+			# Warn here, since there is no harm in being ahead
+			warn "And local branch '$1' is ahead of '$2'."
+		else
+			warn "Branches need merging first."
+		fi
+	fi
+
+	return $compare_refs_result
+}
+
+require_branches_equal_or_push() {
+	local local_branch origin_branch
+
+	local_branch="$1"
+	origin_branch="$2"
+
+	check_branches_equal "$local_branch" "$origin_branch"
+	result=$?
+
+	if [ $result -gt 0 ]; then
+		if [ $result -eq 2 ]; then
+			echo "Pushing $local_branch to origin..."
+			git_do push "$ORIGIN" "$local_branch" || die "Could not push branch '$local_branch' to remote '$ORIGIN'."
+		else
+			die "Cannot procede with these differences. Fix them and re-run."
+		fi
+	fi
+}
+
+require_branches_equal_or_pull() {
+	local local_branch origin_branch
+
+	local_branch="$1"
+	origin_branch="$2"
+
+	check_branches_equal "$local_branch" "$origin_branch"
+	result=$?
+	
+	if [ $result -gt 0 ]; then
+		if [ $result -eq 1 ]; then
+			current_branch=$(git_current_branch)
+			git_do checkout "$local_branch" || die "Could not check out branch '$local_branch'."
+			echo "Pulling $local_branch from origin..."
+			git_do pull "$ORIGIN" "$local_branch" || die "Could not pull branch '$local_branch' from remote '$ORIGIN'."
+			git_do checkout "$current_branch" || die "Could not check out branch '$current_branch'."
+		else
+			die "Cannot procede with these differences. Fix them and re-run."
+		fi
+	fi
+}
+
 require_branches_equal() {
 	local compare_refs_result
 

@@ -319,25 +319,25 @@ cmd_finish() {
 	# Sanity checks
 	require_clean_working_tree
 
-	# We always fetch the Branch from Origin
-	# This is done to avoid possible commits on the remote that are not
-	# merged into the local branch
-	if git_remote_branch_exists "origin/$BRANCH"; then
-		git_fetch_branch "$ORIGIN" "$BRANCH"
-	fi
-
 	# Update local branches with remote branches
+	# If not done and branches were fetched individually, new branches would not be fetched
 	if flag fetch; then
-		git_fetch_branch "$ORIGIN" "$BASE_BRANCH"
+		git_do fetch -q "origin" || die "Could not fetch branches from remote '$ORIGIN'."
 	fi
 
 	# Check if the local branches have all the commits from the remote branches
+	# If remote does not exist, push feature branch to remote
 	if git_remote_branch_exists "origin/$BRANCH"; then
-		require_branches_equal "$BRANCH" "origin/$BRANCH"
+		require_branches_equal_or_push "$BRANCH" "origin/$BRANCH"
+	else 
+		echo "Pushing $local_branch to origin..."
+		git_do push "$ORIGIN" "$local_branch" || die "Could not push branch '$local_branch' to remote '$ORIGIN'."
 	fi
-	if git_remote_branch_exists "origin/$BASE_BRANCH"; then
-		require_branches_equal "$BASE_BRANCH" "origin/$BASE_BRANCH"
-	fi
+
+	# Check that all other branches are up to date
+	require_branches_equal_or_pull "$BASE_BRANCH" "origin/$BASE_BRANCH"
+	require_branches_equal_or_pull "$DEVELOP_BRANCH" "origin/$DEVELOP_BRANCH"
+	require_branches_equal_or_pull "$QA_BRANCH" "origin/$QA_BRANCH"
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 

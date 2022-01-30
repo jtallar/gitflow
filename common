@@ -856,7 +856,7 @@ gitflow_merge_branch_to_base() {
 		# Write the given $BASE_BRANCH to a temporary file as we will
 		# be needing it later.
 		mkdir -p "$DOT_GIT_DIR/.gitflow"
-		echo "$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$base"
+		echo "$branch\\$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$branch"
 		echo
 		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
 		echo "    git mergetool"

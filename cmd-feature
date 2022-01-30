@@ -226,7 +226,10 @@ cmd_finish() {
         S,[no]squash           Squash feature during merge
         no-ff!                 Never fast-forward during the merge
         "
-	local finish_base
+	local finish_base aux_dev_branch aux_qa_branch keepmsg
+	# finish_base will be used with merge conflicts
+	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
+	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
 
 	# Define flags
 	DEFINE_boolean 'fetch' true "fetch from $ORIGIN before performing finish" F
@@ -274,27 +277,24 @@ cmd_finish() {
 	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
-	# TODO: Ver este caso
-	# Detect if we're restoring from a merge conflict
-	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE" ]; then
-		#
-		# TODO: detect that we're working on the correct branch here!
-		# The user need not necessarily have given the same $NAME twice here
-		# (although he/she should).
-		#
-
-		# TODO: git_is_clean_working_tree() should provide an alternative
-		# exit code for "unmerged changes in working tree", which we should
-		# actually be testing for here
+	# Detect if we're restoring from a merge conflict - include branch name in file
+	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH" ]; then
 		if git_is_clean_working_tree; then
-			finish_base=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE")
+			finish_base=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE") # "$branch\\$base"
 
 			# Since the working tree is now clean, either the user did a
 			# successful merge manually, or the merge was cancelled.
 			# We detect this using git_is_branch_merged_into()
 			if git_is_branch_merged_into "$BRANCH" "$finish_base"; then
 				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
-				helper_finish_cleanup
+				echo "Resuming after merge..."
+				# helper_finish_cleanup
+				# TODO: jump to next command
+				# finish_base can be
+				# 	- $aux_dev_branch
+				# 	- $DEVELOP_BRANCH
+				# 	- $aux_qa_branch
+				# 	- $QA_BRANCH
 				exit 0
 			else
 				# If the user cancelled the merge and decided to wait until
@@ -302,6 +302,7 @@ cmd_finish() {
 				# removing the MERGE_BASE file and continuing normal execution
 				# of the finish
 				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+				echo "Cancelling merge and starting over..."
 			fi
 		else
 			echo
@@ -359,7 +360,7 @@ cmd_finish() {
 		fi
 	fi
 
-	# Current situation: 
+	# Original situation: 
 	# 	- BASE_BRANCH = aux-master
 	#	- Default flags
 	#		* push, keep, keeplocal, keepremote = false
@@ -398,10 +399,6 @@ cmd_finish() {
 	#	- If open PR does not exist, create PR from $NAME branch to aux-master branch
 	#		* Include label aux-master
 
-	local aux_dev_branch aux_qa_branch
-	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
-	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
-
 	# Create or merge into aux-dev/$BRANCH
 	if git_local_branch_exists "$aux_dev_branch"; then
 		gitflow_merge_branch_to_base "$BRANCH" "$aux_dev_branch"
@@ -412,6 +409,13 @@ cmd_finish() {
 			create_branch "$aux_dev_branch" "$BRANCH"
 		fi
 	fi
+
+	# Merge develop into aux-dev/$BRANCH
+	gitflow_merge_branch_to_base "$DEVELOP_BRANCH" "$aux_dev_branch"
+
+	# Create remote branch with remote tracking
+	git_do push -u "$ORIGIN" "$aux_dev_branch:$aux_dev_branch"
+	git_do fetch -q "origin" "$aux_dev_branch" || die "Could not fetch branch '$aux_dev_branch' from remote '$ORIGIN'."
 
 	# Create or merge into aux-qa/$BRANCH
 	if git_local_branch_exists "$aux_qa_branch"; then
@@ -424,80 +428,31 @@ cmd_finish() {
 		fi
 	fi
 
-	exit 1
+	# Merge qa into aux-qa/$BRANCH
+	gitflow_merge_branch_to_base "$QA_BRANCH" "$aux_qa_branch"
+
+	# Create remote branch with remote tracking
+	git_do push -u "$ORIGIN" "$aux_qa_branch:$aux_qa_branch"
+	git_do fetch -q "origin" "$aux_qa_branch" || die "Could not fetch branch '$aux_qa_branch' from remote '$ORIGIN'."
+
+	# TODO: Create PRs
+	# Create PR from $BRANCH branch to aux-master branch if not open (label: aux-master)
+
+	# Create PR from $aux_dev_branch branch to develop branch if not open (label: develop)
+
+	# Create PR from $aux_qa_branch branch to qa branch if not open (label: qa)
+
+	# Checkout back to feature branch
+	git_do checkout "$BRANCH" || die "Could not check out branch '$BRANCH'."
 
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
-
-	# When no merge conflict is detected, just clean up the feature branch
-	# gitflow_config_remove_base_branch "$BRANCH"
-	# helper_finish_cleanup
-}
-
-helper_finish_cleanup() {
-	local keepmsg remotebranchdeleted localbranchdeleted
-
-	# Sanity checks
-	require_branch "$BRANCH"
-	require_clean_working_tree
-
-	remotebranchdeleted=$FLAGS_FALSE
-	localbranchdeleted=$FLAGS_FALSE
-
-	if flag push; then
-		git_do push "$ORIGIN" "$BASE_BRANCH" || die "Could not push branch '$BASE_BRANCH' to remote '$ORIGIN'."
-	fi
-
-	if noflag keep; then
-
-		# Always delete remote first
-		if noflag keepremote;then
-			if git_remote_branch_exists "origin/$BRANCH"; then
-				git_remote_branch_delete "$BRANCH" && remotebranchdeleted=$FLAGS_TRUE
-			fi
-		fi
-
-		# Delete local after remote to avoid warnings
-		if noflag keeplocal; then
-			if [ "$BRANCH" = "$(git_current_branch)" ]; then
-				git_do checkout "$BASE_BRANCH" || die "Could not check out branch '$BASE_BRANCH'."
-			fi
-			if flag force_delete; then
-				git_do branch -D "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
-			else
-				if noflag squash; then
-					git_do branch -d "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
-				else
-					git_do branch -D "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
-				fi
-			fi
-		fi
-
-		# no more branches: we can safely remove config section
-		# if ! git_remote_branch_exists "origin/$BRANCH" -a ! git_local_branch_exists "$BRANCH"; then
-		# 	gitflow_config_remove_base_section "$BRANCH"
-		# fi
-	fi
 
 	echo
 	echo "Summary of actions:"
 	echo "- The feature branch '$BRANCH' was merged into '$BASE_BRANCH'"
-	#echo "- Merge conflicts were resolved"		# TODO: Add this line when it's supported
-	if noflag keep; then
-		if [ $localbranchdeleted -eq $FLAGS_TRUE ]; then
-			keepmsg="has been locally deleted"
-		else
-			keepmsg="is still locally available"
-		fi
-		if [ $remotebranchdeleted -eq $FLAGS_TRUE ]; then
-			keepmsg=$keepmsg"; it has been remotely deleted from '$ORIGIN'"
-		elif git_remote_branch_exists "origin/$BRANCH"; then
-			keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
-		fi
-	else
-		keepmsg="is still locally available"
-		if git_remote_branch_exists "origin/$BRANCH"; then
-			keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
-		fi
+	keepmsg="is still locally available"
+	if git_remote_branch_exists "origin/$BRANCH"; then
+		keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
 	fi
 	echo "- Feature branch '$BRANCH' "$keepmsg
 	echo "- You are now on branch '$(git_current_branch)'"

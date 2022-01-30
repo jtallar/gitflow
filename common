@@ -332,7 +332,10 @@ gitflow_load_settings() {
 	export HOOKS_DIR="$(git config --get gitflow.path.hooks || echo ${DOT_GIT_DIR}/hooks)" # the second option is used to support previous versions of git-flow
 	export MASTER_BRANCH="master"
 	export DEVELOP_BRANCH="develop"
+	export AUX_DEVELOP_PREFIX="aux-dev/"
 	export AUX_MASTER_BRANCH="aux-master"
+	export QA_BRANCH="qa"
+	export AUX_QA_PREFIX="aux-qa/"
 	export ORIGIN=$(git config --get remote.origin.url)
 }
 

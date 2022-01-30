@@ -867,7 +867,7 @@ gitflow_merge_branch_to_base() {
 		echo "Or just go to your project with your favorite IDE and it will prompt you to solve the conflicts."
 		echo
 		echo "You can then complete the finish by running it again:"
-		echo "    git flow feature finish $feature_name"
+		echo "    gitflow feature finish $feature_name"
 		echo
 		exit 1
 	fi

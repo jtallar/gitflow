@@ -494,10 +494,17 @@ helper_finish_merges(){
 
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
-	# TODO: Update summary of actions with new stuff
+	# TODO: Update summary of actions with PRs
 	echo
 	echo "Summary of actions:"
-	echo "- The feature branch '$BRANCH' was merged into '$BASE_BRANCH'"
+	echo "- Pushed feature branch '$BRANCH' to '$ORIGIN'"
+	echo "- Pulled branches '$BASE_BRANCH', '$DEVELOP_BRANCH', '$QA_BRANCH' from '$ORIGIN'"
+	echo "- Created/updated '$aux_dev_branch' with '$BRANCH'"
+	echo "- Merged '$DEVELOP_BRANCH' into '$aux_dev_branch'"
+	echo "- Pushed aux branch '$aux_dev_branch' to '$ORIGIN'"
+	echo "- Created/updated '$aux_qa_branch' with '$BRANCH'"
+	echo "- Merged '$QA_BRANCH' into '$aux_qa_branch'"
+	echo "- Pushed aux branch '$aux_qa_branch' to '$ORIGIN'"
 	keepmsg="is still locally available"
 	if git_remote_branch_exists "origin/$BRANCH"; then
 		keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"

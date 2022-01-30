@@ -268,6 +268,7 @@ cmd_finish() {
 	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
+	# TODO: Ver este caso
 	# Detect if we're restoring from a merge conflict
 	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE" ]; then
 		#
@@ -315,7 +316,7 @@ cmd_finish() {
 	# We always fetch the Branch from Origin
 	# This is done to avoid possible commits on the remote that are not
 	# merged into the local branch
-	if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+	if git_remote_branch_exists "origin/$BRANCH"; then
 		git_fetch_branch "$ORIGIN" "$BRANCH"
 	fi
 
@@ -325,11 +326,11 @@ cmd_finish() {
 	fi
 
 	# Check if the local branches have all the commits from the remote branches
-	if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
-			require_branches_equal "$BRANCH" "$ORIGIN/$BRANCH"
+	if git_remote_branch_exists "origin/$BRANCH"; then
+		require_branches_equal "$BRANCH" "origin/$BRANCH"
 	fi
-	if git_remote_branch_exists "$ORIGIN/$BASE_BRANCH"; then
-		require_branches_equal "$BASE_BRANCH" "$ORIGIN/$BASE_BRANCH"
+	if git_remote_branch_exists "origin/$BASE_BRANCH"; then
+		require_branches_equal "$BASE_BRANCH" "origin/$BASE_BRANCH"
 	fi
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
@@ -413,7 +414,7 @@ helper_finish_cleanup() {
 
 		# Always delete remote first
 		if noflag keepremote;then
-			if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+			if git_remote_branch_exists "origin/$BRANCH"; then
 				git_remote_branch_delete "$BRANCH" && remotebranchdeleted=$FLAGS_TRUE
 			fi
 		fi
@@ -435,7 +436,7 @@ helper_finish_cleanup() {
 		fi
 
 		# no more branches: we can safely remove config section
-		if ! git_remote_branch_exists "$ORIGIN/$BRANCH" -a ! git_local_branch_exists "$BRANCH"; then
+		if ! git_remote_branch_exists "origin/$BRANCH" -a ! git_local_branch_exists "$BRANCH"; then
 			gitflow_config_remove_base_section "$BRANCH"
 		fi
 	fi
@@ -452,12 +453,12 @@ helper_finish_cleanup() {
 		fi
 		if [ $remotebranchdeleted -eq $FLAGS_TRUE ]; then
 			keepmsg=$keepmsg"; it has been remotely deleted from '$ORIGIN'"
-		elif git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+		elif git_remote_branch_exists "origin/$BRANCH"; then
 			keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
 		fi
 	else
 		keepmsg="is still locally available"
-		if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+		if git_remote_branch_exists "origin/$BRANCH"; then
 			keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
 		fi
 	fi
@@ -488,14 +489,14 @@ cmd_publish() {
 	# Sanity checks
 	require_clean_working_tree
 	require_branch "$BRANCH"
-	git_do fetch -q "$ORIGIN" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
-	require_branch_absent "$ORIGIN/$BRANCH"
+	git_do fetch -q "origin" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
+	require_branch_absent "origin/$BRANCH"
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	# Create remote branch with remote tracking
 	git_do push -u "$ORIGIN" "$BRANCH:$BRANCH"
-	git_do fetch -q "$ORIGIN" "$BRANCH" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
+	git_do fetch -q "origin" "$BRANCH" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
 	git_do checkout "$BRANCH" || die "Could not check out branch '$BRANCH'."
 
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"

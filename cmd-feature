@@ -142,15 +142,18 @@ cmd_start() {
 git flow feature start [-h] [-F] <name> [<base>]
 
 Start new feature <name>, optionally basing it on <base> instead of <develop>
+By default, --fetch is used
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them
 F,[no]fetch      Pull base from origin before performing local operation
+				 F and --nofetch set the flag to false. 
+				 --fetch explicitly sets it to true (default)
 "
 	local base
 
 	# Define flags
-	DEFINE_boolean 'fetch' false 'fetch from origin before performing local operation' F
+	DEFINE_boolean 'fetch' true 'fetch from origin before performing local operation' F
 
 	# Override defaults with values from config
 	gitflow_override_flag_boolean   "feature.start.fetch"   "fetch"
@@ -206,10 +209,13 @@ cmd_finish() {
         git flow feature finish [-h] [-F] [-r] [-p] [-k] [-D] [-S] [--no-ff] <name|nameprefix>
 
         Finish feature <name>
+		By default, --fetch is used
         --
         h,help!                Show this help
         showcommands!          Show git commands while executing them
         F,[no]fetch            Fetch from origin before performing finish
+							   F and --nofetch set the flag to false. 
+							   --fetch explicitly sets it to true (default)
         r,[no]rebase           Rebase before merging
         p,[no]preserve-merges  Preserve merges while rebasing
         [no]push               Push to origin after performing finish
@@ -223,7 +229,7 @@ cmd_finish() {
 	local finish_base
 
 	# Define flags
-	DEFINE_boolean 'fetch' false "fetch from $ORIGIN before performing finish" F
+	DEFINE_boolean 'fetch' true "fetch from $ORIGIN before performing finish" F
 	DEFINE_boolean 'rebase' false "rebase before merging" r
 	DEFINE_boolean 'preserve-merges' false 'try to recreate merges while rebasing' p
 	DEFINE_boolean 'push' false "push to $ORIGIN after performing finish"

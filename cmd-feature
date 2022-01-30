@@ -168,14 +168,14 @@ F,[no]fetch      Pull base from origin before performing local operation
 	gitflow_require_name_arg
 	require_feature_name
 
+	# Sanity checks
+	require_branch_absent "$BRANCH"
+
 	# Update the local repo with remote changes, if asked
 	if flag fetch; then
 		git_do checkout "$base" || die "Failed to checkout to $base branch"
 		git_do pull "$ORIGIN" "$base" || die "Failed to pull from remote '$REMOTE'."
 	fi
-
-	# Sanity checks
-	require_branch_absent "$BRANCH"
 
 	# If the origin branch counterpart exists, assert that the local branch
 	# isn't behind it (to avoid unnecessary rebasing)
@@ -350,7 +350,7 @@ cmd_finish() {
 		if flag showcommands; then
 			_rebase_opts="$_rebase_opts --showcommands"
 		fi
-		if ! git flow feature rebase $_rebase_opts "$NAME"; then
+		if ! cmd_rebase $_rebase_opts "$NAME"; then
 			warn "Finish was aborted due to conflicts during rebase."
 			warn "Please finish the rebase manually now."
 			warn "When finished, re-run:"

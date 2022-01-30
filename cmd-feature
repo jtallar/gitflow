@@ -145,7 +145,7 @@ Start new feature <name>, optionally basing it on <base> instead of <develop>
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them
-F,[no]fetch      Fetch from origin before performing local operation
+F,[no]fetch      Pull base from origin before performing local operation
 "
 	local base
 
@@ -167,7 +167,8 @@ F,[no]fetch      Fetch from origin before performing local operation
 
 	# Update the local repo with remote changes, if asked
 	if flag fetch; then
-		git_fetch_branch "$ORIGIN" "$base"
+		git_do checkout "$base" || die "Failed to checkout to $base branch"
+		git_do pull "$ORIGIN" "$base" || die "Failed to pull from remote '$REMOTE'."
 	fi
 
 	# Sanity checks

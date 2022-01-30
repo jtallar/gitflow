@@ -268,7 +268,7 @@ git_fetch_branch() {
 	[ -n "$2" ] || die "Missing branch name"
 	origin="$1"
 	branch="$2"
-	if git_remote_branch_exists "$origin/$branch"; then
+	if git_remote_branch_exists "origin/$branch"; then
 		git_do fetch -q "$origin" "$branch" || die "Could not fetch $branch from $origin."
 	else
 		warn "Trying to fetch branch '$origin/$branch' but it does not exist."

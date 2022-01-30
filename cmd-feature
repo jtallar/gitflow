@@ -202,272 +202,268 @@ F,[no]fetch      Pull base from origin before performing local operation
 
 # TODO
 cmd_finish() {
-    echo "Not implemented yet"
-    exit 1
-	# OPTIONS_SPEC="\
-    #     git flow feature finish [-h] [-F] [-r] [-p] [-k] [-D] [-S] [--no-ff] <name|nameprefix>
+	OPTIONS_SPEC="\
+        git flow feature finish [-h] [-F] [-r] [-p] [-k] [-D] [-S] [--no-ff] <name|nameprefix>
 
-    #     Finish feature <name>
-    #     --
-    #     h,help!                Show this help
-    #     showcommands!          Show git commands while executing them
-    #     F,[no]fetch            Fetch from origin before performing finish
-    #     r,[no]rebase           Rebase before merging
-    #     p,[no]preserve-merges  Preserve merges while rebasing
-    #     [no]push               Push to origin after performing finish
-    #     k,[no]keep             Keep branch after performing finish
-    #     keepremote!        	   Keep the remote branch
-    #     keeplocal!             Keep the local branch
-    #     D,[no]force_delete     Force delete feature branch after finish
-    #     S,[no]squash           Squash feature during merge
-    #     no-ff!                 Never fast-forward during the merge
-    #     "
-	# local finish_base
+        Finish feature <name>
+        --
+        h,help!                Show this help
+        showcommands!          Show git commands while executing them
+        F,[no]fetch            Fetch from origin before performing finish
+        r,[no]rebase           Rebase before merging
+        p,[no]preserve-merges  Preserve merges while rebasing
+        [no]push               Push to origin after performing finish
+        k,[no]keep             Keep branch after performing finish
+        keepremote!        	   Keep the remote branch
+        keeplocal!             Keep the local branch
+        D,[no]force_delete     Force delete feature branch after finish
+        S,[no]squash           Squash feature during merge
+        no-ff!                 Never fast-forward during the merge
+        "
+	local finish_base
 
-	# # Define flags
-	# DEFINE_boolean 'fetch' false "fetch from $ORIGIN before performing finish" F
-	# DEFINE_boolean 'rebase' false "rebase before merging" r
-	# DEFINE_boolean 'preserve-merges' false 'try to recreate merges while rebasing' p
-	# DEFINE_boolean 'push' false "push to $ORIGIN after performing finish"
-	# DEFINE_boolean 'keep' false "keep branch after performing finish" k
-	# DEFINE_boolean 'keepremote' false "keep the remote branch"
-	# DEFINE_boolean 'keeplocal' false "keep the local branch"
-	# DEFINE_boolean 'force_delete' false "force delete feature branch after finish" D
-	# DEFINE_boolean 'squash' false "squash feature during merge" S
-	# DEFINE_boolean 'squash-info' false "add branch info during squash"
-	# DEFINE_boolean 'no-ff!' false "Don't fast-forward ever during merge "
+	# Define flags
+	DEFINE_boolean 'fetch' false "fetch from $ORIGIN before performing finish" F
+	DEFINE_boolean 'rebase' false "rebase before merging" r
+	DEFINE_boolean 'preserve-merges' false 'try to recreate merges while rebasing' p
+	DEFINE_boolean 'push' false "push to $ORIGIN after performing finish"
+	DEFINE_boolean 'keep' false "keep branch after performing finish" k
+	DEFINE_boolean 'keepremote' false "keep the remote branch"
+	DEFINE_boolean 'keeplocal' false "keep the local branch"
+	DEFINE_boolean 'force_delete' false "force delete feature branch after finish" D
+	DEFINE_boolean 'squash' false "squash feature during merge" S
+	DEFINE_boolean 'squash-info' false "add branch info during squash"
+	DEFINE_boolean 'no-ff!' false "Don't fast-forward ever during merge "
 
-	# # Override defaults with values from config
-	# gitflow_override_flag_boolean   "feature.finish.fetch"             "fetch"
-	# gitflow_override_flag_boolean   "feature.finish.rebase"            "rebase"
-	# gitflow_override_flag_boolean   "feature.finish.preserve-merges"   "preserve_merges"
-	# gitflow_override_flag_boolean   "feature.finish.push"              "push"
-	# gitflow_override_flag_boolean   "feature.finish.keep"              "keep"
-	# gitflow_override_flag_boolean   "feature.finish.keepremote"        "keepremote"
-	# gitflow_override_flag_boolean   "feature.finish.keeplocal"         "keeplocal"
-	# gitflow_override_flag_boolean   "feature.finish.force-delete"      "force_delete"
-	# gitflow_override_flag_boolean   "feature.finish.squash"            "squash"
-	# gitflow_override_flag_boolean   "feature.finish.squash-info"       "squash_info"
-	# gitflow_override_flag_boolean   "feature.finish.no-ff"             "no_ff"
+	# Override defaults with values from config
+	gitflow_override_flag_boolean   "feature.finish.fetch"             "fetch"
+	gitflow_override_flag_boolean   "feature.finish.rebase"            "rebase"
+	gitflow_override_flag_boolean   "feature.finish.preserve-merges"   "preserve_merges"
+	gitflow_override_flag_boolean   "feature.finish.push"              "push"
+	gitflow_override_flag_boolean   "feature.finish.keep"              "keep"
+	gitflow_override_flag_boolean   "feature.finish.keepremote"        "keepremote"
+	gitflow_override_flag_boolean   "feature.finish.keeplocal"         "keeplocal"
+	gitflow_override_flag_boolean   "feature.finish.force-delete"      "force_delete"
+	gitflow_override_flag_boolean   "feature.finish.squash"            "squash"
+	gitflow_override_flag_boolean   "feature.finish.squash-info"       "squash_info"
+	gitflow_override_flag_boolean   "feature.finish.no-ff"             "no_ff"
 
-	# # Parse arguments
-	# parse_args "$@"
+	# Parse arguments
+	parse_args "$@"
 
-	# # Use current branch if no name is given
-	# if [ "$NAME" = "" ]; then
-	# 	gitflow_use_current_branch_name
-	# fi
+	# Use current branch if no name is given
+	if [ "$NAME" = "" ]; then
+		gitflow_use_current_branch_name
+	fi
 
-	# # Keeping both branches implies the --keep flag to be true.
-	# if flag keepremote && flag keeplocal; then
-	# 	FLAGS_keep=$FLAGS_TRUE
-	# fi
+	# Keeping both branches implies the --keep flag to be true.
+	if flag keepremote && flag keeplocal; then
+		FLAGS_keep=$FLAGS_TRUE
+	fi
 
-	# # Sanity checks
-	# require_branch "$BRANCH"
+	# Sanity checks
+	require_branch "$BRANCH"
 
-	# # BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	# BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
-	# git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
+	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
+	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
-	# # Detect if we're restoring from a merge conflict
-	# if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE" ]; then
-	# 	#
-	# 	# TODO: detect that we're working on the correct branch here!
-	# 	# The user need not necessarily have given the same $NAME twice here
-	# 	# (although he/she should).
-	# 	#
+	# Detect if we're restoring from a merge conflict
+	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE" ]; then
+		#
+		# TODO: detect that we're working on the correct branch here!
+		# The user need not necessarily have given the same $NAME twice here
+		# (although he/she should).
+		#
 
-	# 	# TODO: git_is_clean_working_tree() should provide an alternative
-	# 	# exit code for "unmerged changes in working tree", which we should
-	# 	# actually be testing for here
-	# 	if git_is_clean_working_tree; then
-	# 		finish_base=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE")
+		# TODO: git_is_clean_working_tree() should provide an alternative
+		# exit code for "unmerged changes in working tree", which we should
+		# actually be testing for here
+		if git_is_clean_working_tree; then
+			finish_base=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE")
 
-	# 		# Since the working tree is now clean, either the user did a
-	# 		# successful merge manually, or the merge was cancelled.
-	# 		# We detect this using git_is_branch_merged_into()
-	# 		if git_is_branch_merged_into "$BRANCH" "$finish_base"; then
-	# 			rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
-	# 			helper_finish_cleanup
-	# 			exit 0
-	# 		else
-	# 			# If the user cancelled the merge and decided to wait until
-	# 			# later,that's fine. But we have to acknowledge this by
-	# 			# removing the MERGE_BASE file and continuing normal execution
-	# 			# of the finish
-	# 			rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
-	# 		fi
-	# 	else
-	# 		echo
-	# 		echo "Merge conflicts not resolved yet, use:"
-	# 		echo "    git mergetool"
-	# 		echo "    git commit"
-	# 		echo
-	# 		echo "You can then complete the finish by running it again:"
-	# 		echo "    git flow feature finish $NAME"
-	# 		echo
-	# 		exit 1
-	# 	fi
-	# fi
+			# Since the working tree is now clean, either the user did a
+			# successful merge manually, or the merge was cancelled.
+			# We detect this using git_is_branch_merged_into()
+			if git_is_branch_merged_into "$BRANCH" "$finish_base"; then
+				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+				helper_finish_cleanup
+				exit 0
+			else
+				# If the user cancelled the merge and decided to wait until
+				# later,that's fine. But we have to acknowledge this by
+				# removing the MERGE_BASE file and continuing normal execution
+				# of the finish
+				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+			fi
+		else
+			echo
+			echo "Merge conflicts not resolved yet, use:"
+			echo "    git mergetool"
+			echo "    git commit"
+			echo
+			echo "You can then complete the finish by running it again:"
+			echo "    git flow feature finish $NAME"
+			echo
+			exit 1
+		fi
+	fi
 
-	# # Sanity checks
-	# require_clean_working_tree
+	# Sanity checks
+	require_clean_working_tree
 
-	# # We always fetch the Branch from Origin
-	# # This is done to avoid possible commits on the remote that are not
-	# # merged into the local branch
-	# if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
-	# 	git_fetch_branch "$ORIGIN" "$BRANCH"
-	# fi
+	# We always fetch the Branch from Origin
+	# This is done to avoid possible commits on the remote that are not
+	# merged into the local branch
+	if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+		git_fetch_branch "$ORIGIN" "$BRANCH"
+	fi
 
-	# # Update local branches with remote branches
-	# if flag fetch; then
-	# 	git_fetch_branch "$ORIGIN" "$BASE_BRANCH"
-	# fi
+	# Update local branches with remote branches
+	if flag fetch; then
+		git_fetch_branch "$ORIGIN" "$BASE_BRANCH"
+	fi
 
-	# # Check if the local branches have all the commits from the remote branches
-	# if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
-	# 		require_branches_equal "$BRANCH" "$ORIGIN/$BRANCH"
-	# fi
-	# if git_remote_branch_exists "$ORIGIN/$BASE_BRANCH"; then
-	# 	require_branches_equal "$BASE_BRANCH" "$ORIGIN/$BASE_BRANCH"
-	# fi
+	# Check if the local branches have all the commits from the remote branches
+	if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+			require_branches_equal "$BRANCH" "$ORIGIN/$BRANCH"
+	fi
+	if git_remote_branch_exists "$ORIGIN/$BASE_BRANCH"; then
+		require_branches_equal "$BASE_BRANCH" "$ORIGIN/$BASE_BRANCH"
+	fi
 
-	# run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
+	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 
-	# # If the user wants to rebase, do that first
-	# if flag rebase; then
-	# 	local _rebase_opts=""
-	# 	if flag preserve_merges; then
-	# 		_rebase_opts="$_rebase_opts -p"
-	# 	fi
-	# 	if flag showcommands; then
-	# 		_rebase_opts="$_rebase_opts --showcommands"
-	# 	fi
-	# 	if ! git flow feature rebase $_rebase_opts "$NAME"; then
-	# 		warn "Finish was aborted due to conflicts during rebase."
-	# 		warn "Please finish the rebase manually now."
-	# 		warn "When finished, re-run:"
-	# 		warn "    git flow feature finish '$NAME' '$BASE_BRANCH'"
-	# 		exit 1
-	# 	fi
-	# fi
+	# If the user wants to rebase, do that first
+	if flag rebase; then
+		local _rebase_opts=""
+		if flag preserve_merges; then
+			_rebase_opts="$_rebase_opts -p"
+		fi
+		if flag showcommands; then
+			_rebase_opts="$_rebase_opts --showcommands"
+		fi
+		if ! git flow feature rebase $_rebase_opts "$NAME"; then
+			warn "Finish was aborted due to conflicts during rebase."
+			warn "Please finish the rebase manually now."
+			warn "When finished, re-run:"
+			warn "    git flow feature finish '$NAME' '$BASE_BRANCH'"
+			exit 1
+		fi
+	fi
 
-	# # Merge into BASE
-	# git_do checkout "$BASE_BRANCH" || die "Could not check out branch '$BASE_BRANCH'."
+	# Merge into BASE
+	git_do checkout "$BASE_BRANCH" || die "Could not check out branch '$BASE_BRANCH'."
 
-	# if noflag squash; then
-	# 	if flag no_ff; then
-	# 		git_do merge --no-ff "$BRANCH"
-	# 	else
-	# 		if [ "$(git rev-list -n2 "$BASE_BRANCH..$BRANCH" | wc -l)" -eq 1 ]; then
-	# 			git_do merge --ff "$BRANCH"
-	# 		else
-	# 			git_do merge --no-ff "$BRANCH"
-	# 		fi
-	# 	fi
-	# else
-	# 	git_do merge --squash "$BRANCH"
-	# 	flag squash_info && gitflow_create_squash_message "Merged feature branch '$BRANCH'" "$BASE_BRANCH" "$BRANCH" > "$DOT_GIT_DIR/SQUASH_MSG"
-	# 	git_do commit
-	# fi
+	if noflag squash; then
+		if flag no_ff; then
+			git_do merge --no-ff "$BRANCH"
+		else
+			if [ "$(git rev-list -n2 "$BASE_BRANCH..$BRANCH" | wc -l)" -eq 1 ]; then
+				git_do merge --ff "$BRANCH"
+			else
+				git_do merge --no-ff "$BRANCH"
+			fi
+		fi
+	else
+		git_do merge --squash "$BRANCH"
+		flag squash_info && gitflow_create_squash_message "Merged feature branch '$BRANCH'" "$BASE_BRANCH" "$BRANCH" > "$DOT_GIT_DIR/SQUASH_MSG"
+		git_do commit
+	fi
 
-	# if [ $? -ne 0 ]; then
-	# 	# Oops.. we have a merge conflict!
-	# 	# Write the given $BASE_BRANCH to a temporary file as we will
-	# 	# be needing it later.
-	# 	mkdir -p "$DOT_GIT_DIR/.gitflow"
-	# 	echo "$BASE_BRANCH" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
-	# 	echo
-	# 	echo "There were merge conflicts. To resolve the merge conflict manually, use:"
-	# 	echo "    git mergetool"
-	# 	echo "    git commit"
-	# 	echo
-	# 	echo "You can then complete the finish by running it again:"
-	# 	echo "    git flow feature finish $NAME"
-	# 	echo
-	# 	exit 1
-	# fi
+	if [ $? -ne 0 ]; then
+		# Oops.. we have a merge conflict!
+		# Write the given $BASE_BRANCH to a temporary file as we will
+		# be needing it later.
+		mkdir -p "$DOT_GIT_DIR/.gitflow"
+		echo "$BASE_BRANCH" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+		echo
+		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
+		echo "    git mergetool"
+		echo "    git commit"
+		echo
+		echo "You can then complete the finish by running it again:"
+		echo "    git flow feature finish $NAME"
+		echo
+		exit 1
+	fi
 
-	# run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
+	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
-	# # When no merge conflict is detected, just clean up the feature branch
-	# gitflow_config_remove_base_branch "$BRANCH"
-	# helper_finish_cleanup
+	# When no merge conflict is detected, just clean up the feature branch
+	gitflow_config_remove_base_branch "$BRANCH"
+	helper_finish_cleanup
 }
 
 helper_finish_cleanup() {
-	echo "Not implemented yet"
-    exit 1
-	# local keepmsg remotebranchdeleted localbranchdeleted
+	local keepmsg remotebranchdeleted localbranchdeleted
 
-	# # Sanity checks
-	# require_branch "$BRANCH"
-	# require_clean_working_tree
+	# Sanity checks
+	require_branch "$BRANCH"
+	require_clean_working_tree
 
-	# remotebranchdeleted=$FLAGS_FALSE
-	# localbranchdeleted=$FLAGS_FALSE
+	remotebranchdeleted=$FLAGS_FALSE
+	localbranchdeleted=$FLAGS_FALSE
 
-	# if flag push; then
-	# 	git_do push "$ORIGIN" "$BASE_BRANCH" || die "Could not push branch '$BASE_BRANCH' to remote '$ORIGIN'."
-	# fi
+	if flag push; then
+		git_do push "$ORIGIN" "$BASE_BRANCH" || die "Could not push branch '$BASE_BRANCH' to remote '$ORIGIN'."
+	fi
 
-	# if noflag keep; then
+	if noflag keep; then
 
-	# 	# Always delete remote first
-	# 	if noflag keepremote;then
-	# 		if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
-	# 			git_remote_branch_delete "$BRANCH" && remotebranchdeleted=$FLAGS_TRUE
-	# 		fi
-	# 	fi
+		# Always delete remote first
+		if noflag keepremote;then
+			if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+				git_remote_branch_delete "$BRANCH" && remotebranchdeleted=$FLAGS_TRUE
+			fi
+		fi
 
-	# 	# Delete local after remote to avoid warnings
-	# 	if noflag keeplocal; then
-	# 		if [ "$BRANCH" = "$(git_current_branch)" ]; then
-	# 			git_do checkout "$BASE_BRANCH" || die "Could not check out branch '$BASE_BRANCH'."
-	# 		fi
-	# 		if flag force_delete; then
-	# 			git_do branch -D "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
-	# 		else
-	# 			if noflag squash; then
-	# 				git_do branch -d "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
-	# 			else
-	# 				git_do branch -D "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
-	# 			fi
-	# 		fi
-	# 	fi
+		# Delete local after remote to avoid warnings
+		if noflag keeplocal; then
+			if [ "$BRANCH" = "$(git_current_branch)" ]; then
+				git_do checkout "$BASE_BRANCH" || die "Could not check out branch '$BASE_BRANCH'."
+			fi
+			if flag force_delete; then
+				git_do branch -D "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
+			else
+				if noflag squash; then
+					git_do branch -d "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
+				else
+					git_do branch -D "$BRANCH" && localbranchdeleted=$FLAGS_TRUE
+				fi
+			fi
+		fi
 
-	# 	# no more branches: we can safely remove config section
-	# 	if ! git_remote_branch_exists "$ORIGIN/$BRANCH" -a ! git_local_branch_exists "$BRANCH"; then
-	# 		gitflow_config_remove_base_section "$BRANCH"
-	# 	fi
-	# fi
+		# no more branches: we can safely remove config section
+		if ! git_remote_branch_exists "$ORIGIN/$BRANCH" -a ! git_local_branch_exists "$BRANCH"; then
+			gitflow_config_remove_base_section "$BRANCH"
+		fi
+	fi
 
-	# echo
-	# echo "Summary of actions:"
-	# echo "- The feature branch '$BRANCH' was merged into '$BASE_BRANCH'"
-	# #echo "- Merge conflicts were resolved"		# TODO: Add this line when it's supported
-	# if noflag keep; then
-	# 	if [ $localbranchdeleted -eq $FLAGS_TRUE ]; then
-	# 		keepmsg="has been locally deleted"
-	# 	else
-	# 		keepmsg="is still locally available"
-	# 	fi
-	# 	if [ $remotebranchdeleted -eq $FLAGS_TRUE ]; then
-	# 		keepmsg=$keepmsg"; it has been remotely deleted from '$ORIGIN'"
-	# 	elif git_remote_branch_exists "$ORIGIN/$BRANCH"; then
-	# 		keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
-	# 	fi
-	# else
-	# 	keepmsg="is still locally available"
-	# 	if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
-	# 		keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
-	# 	fi
-	# fi
-	# echo "- Feature branch '$BRANCH' "$keepmsg
-	# echo "- You are now on branch '$(git_current_branch)'"
-	# echo
+	echo
+	echo "Summary of actions:"
+	echo "- The feature branch '$BRANCH' was merged into '$BASE_BRANCH'"
+	#echo "- Merge conflicts were resolved"		# TODO: Add this line when it's supported
+	if noflag keep; then
+		if [ $localbranchdeleted -eq $FLAGS_TRUE ]; then
+			keepmsg="has been locally deleted"
+		else
+			keepmsg="is still locally available"
+		fi
+		if [ $remotebranchdeleted -eq $FLAGS_TRUE ]; then
+			keepmsg=$keepmsg"; it has been remotely deleted from '$ORIGIN'"
+		elif git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+			keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
+		fi
+	else
+		keepmsg="is still locally available"
+		if git_remote_branch_exists "$ORIGIN/$BRANCH"; then
+			keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"
+		fi
+	fi
+	echo "- Feature branch '$BRANCH' "$keepmsg
+	echo "- You are now on branch '$(git_current_branch)'"
+	echo
 }
 
 cmd_publish() {

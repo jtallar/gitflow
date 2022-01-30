@@ -59,6 +59,9 @@ main() {
 	# Load common functionality
 	. "$CURRENT_DIR/common"
 
+	# Load environment variables
+	. "$CURRENT_DIR/.env"
+
 	# allow user to request git action logging
 	DEFINE_boolean 'showcommands' false 'Show actions taken (git commands)'
 	# but if the user prefers that the logging is always on,

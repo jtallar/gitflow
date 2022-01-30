@@ -43,7 +43,7 @@ h,help!     Show this help
 v,verbose   Verbose (more) output
 "
 	local feature_branches current_branch width branch len
-	local base develop_sha branch_sha
+	local base aux_master_sha branch_sha
 
 	# Define flags
 	DEFINE_boolean 'verbose' false 'verbose (more) output' v
@@ -73,7 +73,7 @@ v,verbose   Verbose (more) output
 
 	for branch in $feature_branches; do
 		base=$(git merge-base "$branch" "$AUX_MASTER_BRANCH")
-		develop_sha=$(git rev-parse "$AUX_MASTER_BRANCH")
+		aux_master_sha=$(git rev-parse "$AUX_MASTER_BRANCH")
 		branch_sha=$(git rev-parse "$branch")
 		if [ "$branch" = "$current_branch" ]; then
 			printf "* "
@@ -82,12 +82,12 @@ v,verbose   Verbose (more) output
 		fi
 		if flag verbose; then
 			printf "%-${width}s" "${branch#$PREFIX}"
-			if [ "$branch_sha" = "$develop_sha" ]; then
+			if [ "$branch_sha" = "$aux_master_sha" ]; then
 				printf "(no commits yet)"
 			elif [ "$base" = "$branch_sha" ]; then
-				printf "(is behind develop, may ff)"
-			elif [ "$base" = "$develop_sha" ]; then
-				printf "(based on latest develop)"
+				printf "(is behind aux-master, may ff)"
+			elif [ "$base" = "$aux_master_sha" ]; then
+				printf "(based on latest aux-master)"
 			else
 				printf "(may be rebased)"
 			fi
@@ -141,7 +141,7 @@ cmd_start() {
 	OPTIONS_SPEC="\
 git flow feature start [-h] [-F] <name> [<base>]
 
-Start new feature <name>, optionally basing it on <base> instead of <develop>
+Start new feature <name>, optionally basing it on <base> instead of <aux-master>
 By default, --fetch is used
 --
 h,help!          Show this help
@@ -359,6 +359,22 @@ cmd_finish() {
 		fi
 	fi
 
+	# Current situation: 
+	# 	- BASE_BRANCH = aux-master
+	#	- Default flags
+	#		* push, keep, keeplocal, keepremote = false
+	# 	- Requires that feature branch, base branch are equal to origin
+	# 	- Checkout to base branch
+	# 	- Merge feature branch into base branch
+	# 		* If merge conflicts, create MERGE_BASE file and exit
+	# 		* After commiting merge conflicts and rerunning command, follows with next step 
+	# 	- Push changes to base branch (if push == true)
+	# 	- If keep == true, it ends here
+	# 	- If keep == false
+	# 		* If keepremote == false, delete remote feature branch
+	# 		* If keeplocal == false, delete local feature branch
+
+	exit 1
 	# Merge into BASE
 	git_do checkout "$BASE_BRANCH" || die "Could not check out branch '$BASE_BRANCH'."
 
@@ -398,7 +414,7 @@ cmd_finish() {
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	# When no merge conflict is detected, just clean up the feature branch
-	gitflow_config_remove_base_branch "$BRANCH"
+	# gitflow_config_remove_base_branch "$BRANCH"
 	helper_finish_cleanup
 }
 
@@ -442,9 +458,9 @@ helper_finish_cleanup() {
 		fi
 
 		# no more branches: we can safely remove config section
-		if ! git_remote_branch_exists "origin/$BRANCH" -a ! git_local_branch_exists "$BRANCH"; then
-			gitflow_config_remove_base_section "$BRANCH"
-		fi
+		# if ! git_remote_branch_exists "origin/$BRANCH" -a ! git_local_branch_exists "$BRANCH"; then
+		# 	gitflow_config_remove_base_section "$BRANCH"
+		# fi
 	fi
 
 	echo
@@ -742,7 +758,7 @@ r,[no]remote     Delete remote branch
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	current_branch=$(git_current_branch)
-	# We can't delete a branch we are on, switch to the develop branch.
+	# We can't delete a branch we are on, switch to the aux-master branch.
 	if [ "$BRANCH" = "$current_branch" ]; then
 		require_clean_working_tree
 		if git_local_branch_exists "$BASE_BRANCH"; then

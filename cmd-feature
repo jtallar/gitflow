@@ -483,8 +483,7 @@ helper_finish_merges(){
 	git_do fetch -q "origin" "$aux_qa_branch" || die "Could not fetch branch '$aux_qa_branch' from remote '$ORIGIN'."
 
 	# TODO: Create PRs
-	# REQUIRED: Create a personal access token
-	# https://docs.github.com/en/enterprise-server@3.3/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+	# API Reference: https://docs.github.com/en/rest/reference/pulls#list-pull-requests
 
 	# # Curl request to Create a PR
 	# curl -d '{"title":"testPR","base":"qa", "head":"jtallar:aux-qa/HU-new-2", "body":"Cuerpo del PR"}' \

@@ -226,10 +226,8 @@ cmd_finish() {
         S,[no]squash           Squash feature during merge
         no-ff!                 Never fast-forward during the merge
         "
-	local finish_base aux_dev_branch aux_qa_branch keepmsg
-	# finish_base will be used with merge conflicts
-	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
-	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
+	local merge_conflict stage_num finish_branch finish_base aux_dev_branch aux_qa_branch
+	# finish_branch, finish_base will be used with merge conflicts
 
 	# Define flags
 	DEFINE_boolean 'fetch' true "fetch from $ORIGIN before performing finish" F
@@ -273,6 +271,9 @@ cmd_finish() {
 	# Sanity checks
 	require_branch "$BRANCH"
 
+	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
+	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
+
 	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
 	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
@@ -280,28 +281,44 @@ cmd_finish() {
 	# Detect if we're restoring from a merge conflict - include branch name in file
 	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH" ]; then
 		if git_is_clean_working_tree; then
-			finish_base=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE") # "$branch\\$base"
+			merge_conflict=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH") # "$branch\\$base"
+			finish_branch=$(cut -d'\' -f1 <<< "$merge_conflict")
+			finish_base=$(cut -d'\' -f2 <<< "$merge_conflict")
 
 			# Since the working tree is now clean, either the user did a
 			# successful merge manually, or the merge was cancelled.
 			# We detect this using git_is_branch_merged_into()
-			if git_is_branch_merged_into "$BRANCH" "$finish_base"; then
-				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+			if git_is_branch_merged_into "$finish_branch" "$finish_base"; then
+				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH"
 				echo "Resuming after merge..."
-				# helper_finish_cleanup
-				# TODO: jump to next command
-				# finish_base can be
-				# 	- $aux_dev_branch
-				# 	- $DEVELOP_BRANCH
-				# 	- $aux_qa_branch
-				# 	- $QA_BRANCH
+				case $merge_conflict in
+				"$BRANCH\\$aux_dev_branch")
+					stage_num=1
+					;;
+				"$DEVELOP_BRANCH\\$aux_dev_branch")
+					stage_num=2
+					;;
+				"$BRANCH\\$aux_qa_branch")
+					stage_num=3
+					;;
+				"$QA_BRANCH\\$aux_qa_branch")
+					stage_num=4
+					;;
+				*)
+					echo "Invalid merge conflict saved: $merge_conflict."
+					echo "Cancelling merge, please try running the command again."
+					exit 1
+					;;
+				esac
+
+				helper_finish_merges "$stage_num"
 				exit 0
 			else
 				# If the user cancelled the merge and decided to wait until
 				# later,that's fine. But we have to acknowledge this by
 				# removing the MERGE_BASE file and continuing normal execution
 				# of the finish
-				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE"
+				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH"
 				echo "Cancelling merge and starting over..."
 			fi
 		else
@@ -399,37 +416,67 @@ cmd_finish() {
 	#	- If open PR does not exist, create PR from $NAME branch to aux-master branch
 	#		* Include label aux-master
 
-	# Create or merge into aux-dev/$BRANCH
-	if git_local_branch_exists "$aux_dev_branch"; then
-		gitflow_merge_branch_to_base "$BRANCH" "$aux_dev_branch"
-	else
-		if git_remote_branch_exists "$aux_dev_branch"; then
-			die "Branch $aux_dev_branch exists in $ORIGIN, but not found locally."
+	helper_finish_merges
+}
+
+# 
+# Performs merges, PRs, deletes, from finish feature cmd
+#
+# $1 stage - Number of merges already performed (defaults to 0)
+#			 Helps when solving conflicts, to resume execution
+#
+helper_finish_merges(){
+	local aux_dev_branch aux_qa_branch keepmsg stage_num
+	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
+	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
+	stage_num="$1"
+	[ -n "$1" ] || stage_num=0
+
+	## STAGE 0
+	if [ $stage_num -le 0 ]; then
+		# Create or merge into aux-dev/$BRANCH
+		if git_local_branch_exists "$aux_dev_branch"; then
+			gitflow_merge_branch_to_base "$BRANCH" "$aux_dev_branch"
 		else
-			create_branch "$aux_dev_branch" "$BRANCH"
+			if git_remote_branch_exists "$aux_dev_branch"; then
+				die "Branch $aux_dev_branch exists in $ORIGIN, but not found locally."
+			else
+				create_branch "$aux_dev_branch" "$BRANCH"
+			fi
 		fi
 	fi
 
-	# Merge develop into aux-dev/$BRANCH
-	gitflow_merge_branch_to_base "$DEVELOP_BRANCH" "$aux_dev_branch"
+	## STAGE 1
+	if [ $stage_num -le 1 ]; then
+		# Merge develop into aux-dev/$BRANCH
+		gitflow_merge_branch_to_base "$DEVELOP_BRANCH" "$aux_dev_branch"
+	fi
 
-	# Create remote branch with remote tracking
-	git_do push -u "$ORIGIN" "$aux_dev_branch:$aux_dev_branch"
-	git_do fetch -q "origin" "$aux_dev_branch" || die "Could not fetch branch '$aux_dev_branch' from remote '$ORIGIN'."
+	## STAGE 2
+	if [ $stage_num -le 2 ]; then
+		# Create remote branch with remote tracking
+		git_do push -u "$ORIGIN" "$aux_dev_branch:$aux_dev_branch"
+		git_do fetch -q "origin" "$aux_dev_branch" || die "Could not fetch branch '$aux_dev_branch' from remote '$ORIGIN'."
 
-	# Create or merge into aux-qa/$BRANCH
-	if git_local_branch_exists "$aux_qa_branch"; then
-		gitflow_merge_branch_to_base "$BRANCH" "$aux_qa_branch"
-	else
-		if git_remote_branch_exists "$aux_qa_branch"; then
-			die "Branch $aux_qa_branch exists in $ORIGIN, but not found locally."
+		# Create or merge into aux-qa/$BRANCH
+		if git_local_branch_exists "$aux_qa_branch"; then
+			gitflow_merge_branch_to_base "$BRANCH" "$aux_qa_branch"
 		else
-			create_branch "$aux_qa_branch" "$BRANCH"
+			if git_remote_branch_exists "$aux_qa_branch"; then
+				die "Branch $aux_qa_branch exists in $ORIGIN, but not found locally."
+			else
+				create_branch "$aux_qa_branch" "$BRANCH"
+			fi
 		fi
 	fi
 
-	# Merge qa into aux-qa/$BRANCH
-	gitflow_merge_branch_to_base "$QA_BRANCH" "$aux_qa_branch"
+	## STAGE 3
+	if [ $stage_num -le 3 ]; then
+		# Merge qa into aux-qa/$BRANCH
+		gitflow_merge_branch_to_base "$QA_BRANCH" "$aux_qa_branch"
+	fi
+
+	## STAGE 4
 
 	# Create remote branch with remote tracking
 	git_do push -u "$ORIGIN" "$aux_qa_branch:$aux_qa_branch"
@@ -447,6 +494,7 @@ cmd_finish() {
 
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
+	# TODO: Update summary of actions with new stuff
 	echo
 	echo "Summary of actions:"
 	echo "- The feature branch '$BRANCH' was merged into '$BASE_BRANCH'"

@@ -820,15 +820,18 @@ require_branches_equal() {
 # 
 # $1 branch - Branch to merge into other branch
 # $2 base - Recipient branch of merge
+# $3 feature - Feature name (defaults to $NAME)
 #
 # Uses flags squash, no_ff
 #
 # Exits with error if merge conflict
 #
 gitflow_merge_branch_to_base() {
-	local branch base
+	local branch base feature_name
 	branch="$1"
 	base="$2"
+	feature_name="$3"
+	[ -n "$3" ] || feature_name="$NAME"
 
 	require_local_branch "$branch"
 	require_local_branch "$base"
@@ -856,14 +859,15 @@ gitflow_merge_branch_to_base() {
 		# Write the given $BASE_BRANCH to a temporary file as we will
 		# be needing it later.
 		mkdir -p "$DOT_GIT_DIR/.gitflow"
-		echo "$branch\\$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$branch"
+		echo "$branch\\$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$feature_name"
 		echo
 		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
 		echo "    git mergetool"
 		echo "    git commit"
+		echo "Or just go to your project with your favorite IDE and it will prompt you to solve the conflicts."
 		echo
 		echo "You can then complete the finish by running it again:"
-		echo "    git flow feature finish $branch"
+		echo "    git flow feature finish $feature_name"
 		echo
 		exit 1
 	fi

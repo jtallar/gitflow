@@ -326,6 +326,8 @@ gitflow_is_initialized() {
 
 # Loading settings that can be overridden using git config
 gitflow_load_settings() {
+	local AUX_VARIABLE
+
 	export GIT_CURRENT_REPO_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"
 	DOT_GIT_DIR=$(git rev-parse --git-dir)
 	export DOT_GIT_DIR="$(cd ${DOT_GIT_DIR} >/dev/null 2>&1 && pwd)"
@@ -337,6 +339,10 @@ gitflow_load_settings() {
 	export QA_BRANCH="qa"
 	export AUX_QA_PREFIX="aux-qa/"
 	export ORIGIN=$(git config --get remote.origin.url)
+	AUX_VARIABLE=$(awk -F 'git@github.com:|\.git' '{print $2}' <<< "$ORIGIN")
+	# Usernames cannot have /, but repositories can
+	export USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
+	export REPOSITORY=$(cut -d'/' -f2- <<< "$AUX_VARIABLE")
 }
 
 #

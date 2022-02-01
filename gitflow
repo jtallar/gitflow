@@ -52,15 +52,15 @@ main() {
 		exit 1
 	fi
 
+	# Load environment variables
+	. "$CURRENT_DIR/.env"
+
 	# Use the shFlags project to parse the command line arguments
 	. "$CURRENT_DIR/shFlags"
 	FLAGS_PARENT="./feature"
 
 	# Load common functionality
 	. "$CURRENT_DIR/common"
-
-	# Load environment variables
-	. "$CURRENT_DIR/.env"
 
 	# allow user to request git action logging
 	DEFINE_boolean 'showcommands' false 'Show actions taken (git commands)'

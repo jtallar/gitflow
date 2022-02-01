@@ -340,7 +340,7 @@ gitflow_load_settings() {
 	export AUX_QA_PREFIX="aux-qa/"
 	export ORIGIN=$(git config --get remote.origin.url)
 	AUX_VARIABLE=$(awk -F 'git@github.com:|\.git' '{print $2}' <<< "$ORIGIN")
-	# Usernames cannot have /, but repositories can
+	# Neither usernames nor repositories can have /
 	export USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
 	export REPOSITORY=$(cut -d'/' -f2- <<< "$AUX_VARIABLE")
 }
@@ -885,7 +885,7 @@ gitflow_merge_branch_to_base() {
 # $1 branch - New branch name
 # $2 base - Base branch for new branch. Defaults to current branch
 #
-create_branch() {
+gitflow_create_branch() {
 	local branch base
 	branch="$1"
 	base="$2"
@@ -897,6 +897,85 @@ create_branch() {
 	fi
 
 	git_do checkout -b "$branch" "$base" || die "Could not create branch '$branch' from '$base'."
+}
+
+export ACCEPT_HEADER='Accept:application/vnd.github.v3+json'
+export AUTHORIZATION_HEADER='Authorization:token '"$GITHUB_PAT"''
+export GITHUB_API_BASE_URL='https://api.github.com'
+
+# 
+# Perform a get request to the GitHub API at the desired path
+#
+# $1 path - path to which the GET request will be done
+#			Eg: /repos/
+#
+# Returns the request response
+#
+github_api_get() {
+	[ -n "$1" ] || die "Missing path"
+	curl -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1"
+}
+
+# 
+# Perform a post request to the GitHub API at the desired path
+#
+# $1 path - path to which the POST request will be done
+#			Eg: /repos/
+# $2 body - POST body object (optional)
+#
+# Returns the request response
+#
+github_api_post() {
+	[ -n "$1" ] || die "Missing path"
+	curl -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1"
+	# # Curl request to Create a PR
+	# curl -d '{"title":"testPR","base":"qa", "head":"jtallar:aux-qa/HU-new-2", "body":"Cuerpo del PR"}' \
+	# 	https://api.github.com/repos/jtallar/drixit-challenge/pulls
+}
+
+#
+# List all Pull Requests from Repository at GitHub
+#
+github_list_all_pr() {
+	github_api_get "/repos/$USERNAME/$REPOSITORY/pulls"
+}
+
+#
+# Create a new Pull Request at GitHub Repository
+#
+# $1 head - Head branch to merge from
+# $2 base - Base branch to merge to
+# $3 body - Body of the PR (optional)
+#
+# Title will be set to head
+#
+# Returns issue_number
+#
+github_create_pr() {
+	local head base body response issue_number req_body
+
+	head="$1"
+	base="$2"
+	body="$3"
+	
+	[ -n "$1" ] || die "Missing head"
+	[ -n "$2" ] || die "Missing base"
+	[ -n "$3" ] || body=""
+
+	req_body="{\"title\":\"$head\",\"base\":\"$USERNAME:$base\", \"head\":\"$USERNAME:$head\", \"body\":\"$body\"}"
+	response=$(github_api_post "/repos/$USERNAME/$REPOSITORY/pulls" "$req_body")
+
+	# Adding label to PR
+	issue_number=$(json_get_key "$response" ".number")
+	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}"
+
+	return "$issue_number"
+}
+
+# $1 json - JSON String to feed to JQ
+# $2 key - Key to look in JSON string
+json_get_key() {
+	jq "$2" <<< "$1" | tr -d "\""
 }
 
 #

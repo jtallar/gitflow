@@ -913,7 +913,7 @@ export GITHUB_API_BASE_URL='https://api.github.com'
 #
 github_api_get() {
 	[ -n "$1" ] || die "Missing path"
-	curl -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1"
+	curl -X GET -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1" -s
 }
 
 # 
@@ -927,7 +927,7 @@ github_api_get() {
 #
 github_api_post() {
 	[ -n "$1" ] || die "Missing path"
-	curl -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1"
+	curl -X POST -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1" -d "$2" -s
 	# # Curl request to Create a PR
 	# curl -d '{"title":"testPR","base":"qa", "head":"jtallar:aux-qa/HU-new-2", "body":"Cuerpo del PR"}' \
 	# 	https://api.github.com/repos/jtallar/drixit-challenge/pulls
@@ -962,12 +962,12 @@ github_create_pr() {
 	[ -n "$2" ] || die "Missing base"
 	[ -n "$3" ] || body=""
 
-	req_body="{\"title\":\"$head\",\"base\":\"$USERNAME:$base\", \"head\":\"$USERNAME:$head\", \"body\":\"$body\"}"
+	req_body="{\"title\":\"$head\",\"base\":\"$base\", \"head\":\"$USERNAME:$head\", \"body\":\"$body\"}"
 	response=$(github_api_post "/repos/$USERNAME/$REPOSITORY/pulls" "$req_body")
 
 	# Adding label to PR
 	issue_number=$(json_get_key "$response" ".number")
-	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}"
+	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" | grep -q "-"
 
 	return "$issue_number"
 }

@@ -513,21 +513,21 @@ helper_finish_merges(){
 	if [ ! "${open_prs["$BRANCH\\$AUX_MASTER_BRANCH"]}" ]; then
 		issue_number=$(github_create_pr "$BRANCH" "$AUX_MASTER_BRANCH" "Cuerpo del PR AUX-MASTER")
 
-		echo "PR created from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/jtallar/drixit-challenge/pull/$issue_number"
+		echo "PR created from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number"
 	fi
 
 	# Create PR from $aux_dev_branch branch to develop branch if not open (label: develop)
 	if [ ! "${open_prs["$aux_dev_branch\\$DEVELOP_BRANCH"]}" ]; then
 		issue_number=$(github_create_pr "$aux_dev_branch" "$DEVELOP_BRANCH" "Cuerpo del PR DEVELOP")
 
-		echo "PR created from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/jtallar/drixit-challenge/pull/$issue_number"
+		echo "PR created from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number"
 	fi
 
 	# Create PR from $aux_qa_branch branch to qa branch if not open (label: qa)
 	if [ ! "${open_prs["$aux_qa_branch\\$QA_BRANCH"]}" ]; then
 		issue_number=$(github_create_pr "$aux_qa_branch" "$QA_BRANCH" "Cuerpo del PR QA")
 
-		echo "PR created from $aux_qa_branch to $QA_BRANCH: https://github.com/jtallar/drixit-challenge/pull/$issue_number"
+		echo "PR created from $aux_qa_branch to $QA_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number"
 	fi
 
 	# Checkout back to feature branch

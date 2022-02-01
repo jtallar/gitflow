@@ -341,6 +341,7 @@ gitflow_load_settings() {
 	export ORIGIN=$(git config --get remote.origin.url)
 	AUX_VARIABLE=$(awk -F 'git@github.com:|\.git' '{print $2}' <<< "$ORIGIN")
 	# Neither usernames nor repositories can have /
+	# TODO: Try in a Humand repository. Owner = USERNAME should be OK everywhere, but lets try a feature finish cmd
 	export USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
 	export REPOSITORY=$(cut -d'/' -f2- <<< "$AUX_VARIABLE")
 }
@@ -928,9 +929,6 @@ github_api_get() {
 github_api_post() {
 	[ -n "$1" ] || die "Missing path"
 	curl -X POST -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1" -d "$2" -s
-	# # Curl request to Create a PR
-	# curl -d '{"title":"testPR","base":"qa", "head":"jtallar:aux-qa/HU-new-2", "body":"Cuerpo del PR"}' \
-	# 	https://api.github.com/repos/jtallar/drixit-challenge/pulls
 }
 
 #

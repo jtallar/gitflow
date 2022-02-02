@@ -157,6 +157,22 @@ git_local_branch_exists() {
 	[ -n "$(git for-each-ref --format='%(refname:short)' refs/heads/$1)" ]
 }
 
+# $1 branch - Branch name to delete
+git_local_branch_delete() {
+	[ -n "$1" ] || die "Missing branch name"
+	
+	if ! git_local_branch_exists "$1"; then
+		warn "Branch $1 does not exist, continuing..."
+		return 0
+	fi
+
+	if flag force; then
+		git_do branch -D "$1" || die "Could not delete the $1."
+	else
+		git_do branch -d "$1" || die "Could not delete the $1."
+	fi
+}
+
 git_remote_branch_exists() {
 	[ -n "$1" ] || die "Missing branch name"
 	[ -n "$(git for-each-ref --format='%(refname:short)' refs/remotes/$1)" ]
@@ -936,7 +952,7 @@ github_api_post() {
 # List all Pull Requests from Repository at GitHub
 #
 github_list_all_pr() {
-	github_api_get "/repos/$USERNAME/$REPOSITORY/pulls"
+	github_api_get "/repos/$USERNAME/$REPOSITORY/pulls?state=open&per_page=100"
 }
 
 #
@@ -968,6 +984,11 @@ github_create_pr() {
 
 	# Adding label to PR
 	issue_number=$(json_get_key "$response" ".number")
+
+	if [ -z "$issue_number" ] || [ "$issue_number" = "null" ]; then
+		return -1
+	fi
+
 	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" >/dev/null 2>&1
 
 	return "$issue_number"

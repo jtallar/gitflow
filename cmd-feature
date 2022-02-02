@@ -494,6 +494,7 @@ helper_finish_merges(){
 	local pr_list head base state issue_number tmp_file pr_body
 	declare -A open_prs
 
+	# TODO: Remove this, use return value from create_pr to check if PR was created or not
 	# Create a dictionary with open PRs - Keys like "$head\\$base"
 	pr_list=$(github_list_all_pr)
 	while read i; do
@@ -784,6 +785,8 @@ showcommands!    Show git commands while executing them
 	run_post_hook "$NAME" "$REMOTE" "$BRANCH"
 }
 
+# TODO: Fix delete, properly delete feature branch, aux-dev, aux-qa
+# If one fails, all crumbles (not merged, not exists, etc)
 cmd_delete() {
 	OPTIONS_SPEC="\
 gitflow feature delete [-h] [-f] [-r] <name>
@@ -795,7 +798,7 @@ showcommands!    Show git commands while executing them
 f,[no]force      Force deletion
 r,[no]remote     Delete remote branch
 "
-	local current_branch
+	local current_branch aux_dev_branch aux_qa_branch
 
 	# Define flags
 	DEFINE_boolean 'force' false "force deletion" f
@@ -818,9 +821,11 @@ r,[no]remote     Delete remote branch
 
 	# If local branch does not exist, can only remove remote branch
 	if ! git_local_branch_exists "$BRANCH"; then
-		echo "Local branch does not exist. Only attempting to remove remote if required..."
+		echo "Local branch does not exist. Only attempting to remove remotes if required..."
 		if flag remote; then
 			git_remote_branch_delete "$BRANCH"
+			git_remote_branch_delete "$AUX_DEVELOP_PREFIX$BRANCH"
+			git_remote_branch_delete "$AUX_QA_PREFIX$BRANCH"
 		fi
 		exit 0
 	fi
@@ -830,9 +835,11 @@ r,[no]remote     Delete remote branch
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 
+	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
+	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
 	current_branch=$(git_current_branch)
 	# We can't delete a branch we are on, switch to the aux-master branch.
-	if [ "$BRANCH" = "$current_branch" ]; then
+	if [ "$BRANCH" = "$current_branch" ] || [ "$aux_dev_branch" = "$current_branch" ] || [ "$aux_qa_branch" = "$current_branch" ]; then
 		require_clean_working_tree
 		if git_local_branch_exists "$BASE_BRANCH"; then
 			git_do checkout "$BASE_BRANCH"
@@ -842,15 +849,25 @@ r,[no]remote     Delete remote branch
 	fi
 
 	if git_is_branch_merged_into "$BRANCH" "$BASE_BRANCH"; then
-		git_do branch -d "$BRANCH" || die "Could not delete the $BRANCH."
+		git_local_branch_delete "$BRANCH"
+		git_local_branch_delete "$aux_dev_branch"
+		git_local_branch_delete "$aux_qa_branch"
+
 		if flag remote; then
 			git_remote_branch_delete "$BRANCH"
+			git_remote_branch_delete "$aux_dev_branch"
+			git_remote_branch_delete "$aux_qa_branch"
 		fi
 	else
 		if flag force; then
-			git_do branch -D "$BRANCH" || die "Could not delete the $BRANCH."
+			git_local_branch_delete "$BRANCH"
+			git_local_branch_delete "$aux_dev_branch"
+			git_local_branch_delete "$aux_qa_branch"
+
 			if flag remote; then
 				git_remote_branch_delete "$BRANCH"
+				git_remote_branch_delete "$aux_dev_branch"
+				git_remote_branch_delete "$aux_qa_branch"
 			fi
 		else
 			die "Feature branch '$BRANCH' has been not been merged yet. Use -f to force the deletion."

@@ -203,7 +203,6 @@ F,[no]fetch      Pull base from origin before performing local operation
 	echo
 }
 
-# TODO
 cmd_finish() {
 	OPTIONS_SPEC="\
         gitflow feature finish [-h] [-F] [-r] [-p] [-k] [-D] [-S] [--no-ff] <name|nameprefix>
@@ -426,22 +425,26 @@ cmd_finish() {
 #			 Helps when solving conflicts, to resume execution
 #
 helper_finish_merges(){
-	local aux_dev_branch aux_qa_branch keepmsg stage_num
+	local aux_dev_branch aux_qa_branch keepmsg stage_num print_arr
 	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
 	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
 	stage_num="$1"
 	[ -n "$1" ] || stage_num=0
+
+	print_arr=()
 
 	## STAGE 0
 	if [ $stage_num -le 0 ]; then
 		# Create or merge into aux-dev/$BRANCH
 		if git_local_branch_exists "$aux_dev_branch"; then
 			gitflow_merge_branch_to_base "$BRANCH" "$aux_dev_branch"
+			print_arr+=("- Updated '$aux_dev_branch' with '$BRANCH'")
 		else
 			if git_remote_branch_exists "$aux_dev_branch"; then
 				die "Branch $aux_dev_branch exists in $ORIGIN, but not found locally."
 			else
 				gitflow_create_branch "$aux_dev_branch" "$BRANCH"
+				print_arr+=("- Created '$aux_dev_branch' with '$BRANCH'")
 			fi
 		fi
 	fi
@@ -450,6 +453,7 @@ helper_finish_merges(){
 	if [ $stage_num -le 1 ]; then
 		# Merge develop into aux-dev/$BRANCH
 		gitflow_merge_branch_to_base "$DEVELOP_BRANCH" "$aux_dev_branch"
+		print_arr+=("- Merged '$DEVELOP_BRANCH' into '$aux_dev_branch'")
 	fi
 
 	## STAGE 2
@@ -457,15 +461,18 @@ helper_finish_merges(){
 		# Create remote branch with remote tracking
 		git_do push -u "$ORIGIN" "$aux_dev_branch:$aux_dev_branch"
 		git_do fetch -q "origin" "$aux_dev_branch" || die "Could not fetch branch '$aux_dev_branch' from remote '$ORIGIN'."
+		print_arr+=("- Pushed aux branch '$aux_dev_branch' to '$ORIGIN'")
 
 		# Create or merge into aux-qa/$BRANCH
 		if git_local_branch_exists "$aux_qa_branch"; then
 			gitflow_merge_branch_to_base "$BRANCH" "$aux_qa_branch"
+			print_arr+=("- Updated '$aux_qa_branch' with '$BRANCH'")
 		else
 			if git_remote_branch_exists "$aux_qa_branch"; then
 				die "Branch $aux_qa_branch exists in $ORIGIN, but not found locally."
 			else
 				gitflow_create_branch "$aux_qa_branch" "$BRANCH"
+				print_arr+=("- Created '$aux_qa_branch' with '$BRANCH'")
 			fi
 		fi
 	fi
@@ -474,6 +481,7 @@ helper_finish_merges(){
 	if [ $stage_num -le 3 ]; then
 		# Merge qa into aux-qa/$BRANCH
 		gitflow_merge_branch_to_base "$QA_BRANCH" "$aux_qa_branch"
+		print_arr+=("- Merged '$QA_BRANCH' into '$aux_qa_branch'")
 	fi
 
 	## STAGE 4
@@ -481,18 +489,7 @@ helper_finish_merges(){
 	# Create remote branch with remote tracking
 	git_do push -u "$ORIGIN" "$aux_qa_branch:$aux_qa_branch"
 	git_do fetch -q "origin" "$aux_qa_branch" || die "Could not fetch branch '$aux_qa_branch' from remote '$ORIGIN'."
-
-	# TODO: Create PRs
-	# API Reference: https://docs.github.com/en/rest/reference/pulls#list-pull-requests
-
-	# # Curl request to Create a PR
-	# curl -d '{"title":"testPR","base":"qa", "head":"jtallar:aux-qa/HU-new-2", "body":"Cuerpo del PR"}' \
-	# 	-H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_PAT" \
-	# 	https://api.github.com/repos/jtallar/drixit-challenge/pulls
-
-	# # Curl request to List all PRs
-	# curl -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_PAT" \
-	# 	https://api.github.com/repos/jtallar/drixit-challenge/pulls
+	print_arr+=("- Pushed aux branch '$aux_qa_branch' to '$ORIGIN'")
 
 	local pr_list head base state issue_number
 	declare -A open_prs
@@ -504,7 +501,7 @@ helper_finish_merges(){
 		if [[ "$state" == 'open' ]] ; then
 			head=$(json_get_key "$i" ".head.ref")
 			base=$(json_get_key "$i" ".base.ref")
-			open_prs["$head\\$base"]=1
+			open_prs["$head\\$base"]=$(json_get_key "$i" ".number")
 		fi
 	done < <(jq -c '.[]' <<< "$pr_list")
 
@@ -513,21 +510,27 @@ helper_finish_merges(){
 	if [ ! "${open_prs["$BRANCH\\$AUX_MASTER_BRANCH"]}" ]; then
 		issue_number=$(github_create_pr "$BRANCH" "$AUX_MASTER_BRANCH" "Cuerpo del PR AUX-MASTER")
 
-		echo "PR created from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number"
+		print_arr+=("- Created PR from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number")
+	else
+		print_arr+=("- PR already open from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/${open_prs["$BRANCH\\$AUX_MASTER_BRANCH"]}")
 	fi
 
 	# Create PR from $aux_dev_branch branch to develop branch if not open (label: develop)
 	if [ ! "${open_prs["$aux_dev_branch\\$DEVELOP_BRANCH"]}" ]; then
 		issue_number=$(github_create_pr "$aux_dev_branch" "$DEVELOP_BRANCH" "Cuerpo del PR DEVELOP")
 
-		echo "PR created from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number"
+		print_arr+=("- Created PR from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number")
+	else
+		print_arr+=("- PR already open from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/${open_prs["$aux_dev_branch\\$DEVELOP_BRANCH"]}")
 	fi
 
 	# Create PR from $aux_qa_branch branch to qa branch if not open (label: qa)
 	if [ ! "${open_prs["$aux_qa_branch\\$QA_BRANCH"]}" ]; then
 		issue_number=$(github_create_pr "$aux_qa_branch" "$QA_BRANCH" "Cuerpo del PR QA")
 
-		echo "PR created from $aux_qa_branch to $QA_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number"
+		print_arr+=("- Created PR from $aux_qa_branch to $QA_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number")
+	else
+		print_arr+=("- PR already open from $aux_qa_branch to $QA_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/${open_prs["$aux_qa_branch\\$QA_BRANCH"]}")
 	fi
 
 	# Checkout back to feature branch
@@ -535,17 +538,14 @@ helper_finish_merges(){
 
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
-	# TODO: Update summary of actions with PRs
 	echo
 	echo "Summary of actions:"
 	echo "- Pushed feature branch '$BRANCH' to '$ORIGIN'"
 	echo "- Pulled branches '$BASE_BRANCH', '$DEVELOP_BRANCH', '$QA_BRANCH' from '$ORIGIN'"
-	echo "- Created/updated '$aux_dev_branch' with '$BRANCH'"
-	echo "- Merged '$DEVELOP_BRANCH' into '$aux_dev_branch'"
-	echo "- Pushed aux branch '$aux_dev_branch' to '$ORIGIN'"
-	echo "- Created/updated '$aux_qa_branch' with '$BRANCH'"
-	echo "- Merged '$QA_BRANCH' into '$aux_qa_branch'"
-	echo "- Pushed aux branch '$aux_qa_branch' to '$ORIGIN'"
+	for msg in "${print_arr[@]}"
+	do
+		echo $msg
+	done
 	keepmsg="is still locally available"
 	if git_remote_branch_exists "origin/$BRANCH"; then
 		keepmsg=$keepmsg"; it is still remotely available on '$ORIGIN'"

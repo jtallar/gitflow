@@ -904,7 +904,8 @@ export ACCEPT_HEADER='Accept:application/vnd.github.v3+json'
 export AUTHORIZATION_HEADER='Authorization:token '"$GITHUB_PAT"''
 export GITHUB_API_BASE_URL='https://api.github.com'
 
-# 
+# API Reference: https://docs.github.com/en/rest/reference/pulls#list-pull-requests 
+#
 # Perform a get request to the GitHub API at the desired path
 #
 # $1 path - path to which the GET request will be done

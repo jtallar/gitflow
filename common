@@ -986,7 +986,7 @@ github_create_pr() {
 	issue_number=$(json_get_key "$response" ".number")
 
 	if [ -z "$issue_number" ] || [ "$issue_number" = "null" ]; then
-		return -1
+		return 1
 	fi
 
 	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" >/dev/null 2>&1

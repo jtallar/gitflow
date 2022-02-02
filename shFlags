@@ -149,7 +149,6 @@ case $? in
     fi
     ;;
   2)
-	# TODO(kward): look into '-T' option to test the internal getopt() version
 	if [ "`${FLAGS_GETOPT_CMD} --version`" = '-- ' ]; then
 	  __FLAGS_GETOPT_VERS=${__FLAGS_GETOPT_VERS_STD}
 	else

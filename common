@@ -961,12 +961,14 @@ github_create_pr() {
 	[ -n "$2" ] || die "Missing base"
 	[ -n "$3" ] || body=""
 
-	req_body="{\"title\":\"$head\",\"base\":\"$base\", \"head\":\"$USERNAME:$head\", \"body\":\"$body\"}"
+	body=$(string_to_json "$3") # Already includes starting and ending " "
+
+	req_body="{\"title\":\"$head\",\"base\":\"$base\", \"head\":\"$USERNAME:$head\", \"body\":$body}"
 	response=$(github_api_post "/repos/$USERNAME/$REPOSITORY/pulls" "$req_body")
 
 	# Adding label to PR
 	issue_number=$(json_get_key "$response" ".number")
-	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" | grep -q "-"
+	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" >/dev/null 2>&1
 
 	return "$issue_number"
 }
@@ -975,6 +977,13 @@ github_create_pr() {
 # $2 key - Key to look in JSON string
 json_get_key() {
 	jq "$2" <<< "$1" | tr -d "\""
+}
+
+# $1 string - String to convert to JSON
+#
+# Returns "string" (with quotes)
+string_to_json() {
+	jq -aRs <<< "$1"
 }
 
 #

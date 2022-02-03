@@ -270,6 +270,14 @@ cmd_finish() {
 	# Sanity checks
 	require_branch "$BRANCH"
 
+	if ! github_check_authenticated; then
+		echo "Your GitHub Personal Access Token is either invalid or has expired."
+		echo "Please save your PAT in an environment variable 'GITHUB_PAT' (or in a .env file)"
+		echo "You can then re-run the finish command by running it again:"
+		echo "    gitflow feature finish $NAME"
+		exit 1
+	fi
+
 	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
 	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
 
@@ -324,6 +332,8 @@ cmd_finish() {
 			echo
 			echo "Merge conflicts not resolved yet, use:"
 			echo "    git mergetool"
+			echo "Or just go to your project with your favorite IDE and it will prompt you to solve the conflicts."
+			echo "Then, commit your merge. You can do this by running"
 			echo "    git commit"
 			echo
 			echo "You can then complete the finish by running it again:"
@@ -501,6 +511,7 @@ helper_finish_merges(){
 	pr_body=$(cat $tmp_file)
 	rm "$tmp_file"
 
+	print_arr+=("----------- PR -----------")
 	# Create PR from $BRANCH branch to aux-master branch if not open (label: aux-master)
 	issue_number=$(github_create_pr "$BRANCH" "$AUX_MASTER_BRANCH" "$pr_body")
 	return_code="$?"
@@ -527,6 +538,7 @@ helper_finish_merges(){
 	else
 		print_arr+=("- PR already open from $aux_qa_branch to $QA_BRANCH: $(github_pr_search_url $aux_qa_branch $QA_BRANCH)")
 	fi
+	print_arr+=("--------------------------")
 
 	# Checkout back to feature branch
 	git_do checkout "$BRANCH" || die "Could not check out branch '$BRANCH'."

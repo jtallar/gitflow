@@ -886,8 +886,9 @@ gitflow_merge_branch_to_base() {
 		echo
 		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
 		echo "    git mergetool"
-		echo "    git commit"
 		echo "Or just go to your project with your favorite IDE and it will prompt you to solve the conflicts."
+		echo "Then, commit your merge. You can do this by running"
+		echo "    git commit"
 		echo
 		echo "You can then complete the finish by running it again:"
 		echo "    gitflow feature finish $feature_name"
@@ -946,6 +947,33 @@ github_api_get() {
 github_api_post() {
 	[ -n "$1" ] || die "Missing path"
 	curl -X POST -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1" -d "$2" -s
+}
+
+# 
+# Perform a head request to the GitHub API at the desired path
+#
+# $1 path - path to which the POST request will be done
+#			Eg: /repos/
+#
+# Returns the request response (headers)
+#
+github_api_head() {
+	[ -n "$1" ] || die "Missing path"
+	curl -I -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL$1" -s
+}
+
+#
+#
+#
+github_check_authenticated() {
+	local http_status
+	http_status=$(curl -I --write-out '%{http_code}' -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL/repos/$USERNAME/$REPOSITORY/pulls" -s -o /dev/null)
+
+	if [ $http_status -eq 200 ]; then
+		return 0
+	else
+		return 1
+	fi
 }
 
 #

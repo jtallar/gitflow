@@ -183,14 +183,10 @@ F,[no]fetch      Pull base from origin before performing local operation
 		require_branches_equal "$base" "origin/$base"
 	fi
 
-	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH" "$base"
-
 	# gitflow_config_set_base_branch $base $BRANCH
 
 	# create branch
 	gitflow_create_branch "$BRANCH" "$base"
-
-	run_post_hook "$NAME" "$ORIGIN" "$BRANCH" "$base"
 
 	echo
 	echo "Summary of actions:"
@@ -370,8 +366,6 @@ cmd_finish() {
 	require_branches_equal_or_pull "$DEVELOP_BRANCH" "origin/$DEVELOP_BRANCH"
 	require_branches_equal_or_pull "$QA_BRANCH" "origin/$QA_BRANCH"
 
-	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
-
 	# If the user wants to rebase, do that first
 	if flag rebase; then
 		local _rebase_opts=""
@@ -547,8 +541,6 @@ helper_finish_merges(){
 	# Checkout back to feature branch
 	git_do checkout "$BRANCH" || die "Could not check out branch '$BRANCH'."
 
-	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
-
 	echo
 	echo "Summary of actions:"
 	echo "- Pushed feature branch '$BRANCH' to '$ORIGIN'"
@@ -591,14 +583,10 @@ cmd_publish() {
 	git_do fetch -q "origin" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
 	require_branch_absent "origin/$BRANCH"
 
-	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
-
 	# Create remote branch with remote tracking
 	git_do push -u "$ORIGIN" "$BRANCH:$BRANCH"
 	git_do fetch -q "origin" "$BRANCH" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
 	git_do checkout "$BRANCH" || die "Could not check out branch '$BRANCH'."
-
-	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	echo
 	echo "Summary of actions:"
@@ -626,15 +614,11 @@ showcommands!    Show git commands while executing them
 	require_clean_working_tree
 	require_local_branch_absent "$BRANCH"
 
-	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
-
 	git_do fetch -q "origin" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
 	require_remote_branch "origin/$BRANCH"
 
 	# Create tracking branch
 	gitflow_create_branch "$BRANCH" "origin/$BRANCH"
-
-	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	echo
 	echo "Summary of actions:"
@@ -770,8 +754,6 @@ showcommands!    Show git commands while executing them
 	gitflow_use_current_branch_name
 	require_clean_working_tree
 
-	run_pre_hook "$NAME" "$REMOTE" "$BRANCH"
-
 	# We already have a local branch called like this, so simply pull the
 	# remote changes in
 	if flag rebase; then
@@ -784,8 +766,6 @@ showcommands!    Show git commands while executing them
 	fi
 
 	echo "Pulled $REMOTE's changes into $BRANCH."
-	
-	run_post_hook "$NAME" "$REMOTE" "$BRANCH"
 }
 
 cmd_delete() {
@@ -828,8 +808,6 @@ r,[no]remote     Delete remote branch
 	current_branch=$(git_current_branch)
 	print_arr=()
 
-	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
-
 	branch_arr=("$BRANCH" "$AUX_DEVELOP_PREFIX$BRANCH" "$AUX_QA_PREFIX$BRANCH")
 	bases_arr=("$AUX_MASTER_BRANCH" "$DEVELOP_BRANCH" "$QA_BRANCH")
 
@@ -850,8 +828,6 @@ r,[no]remote     Delete remote branch
 			print_arr+=("- Deleted remote branch 'origin/${branch_arr[$i]}'")
 		fi
 	done
-
-	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	echo
 	echo "Summary of actions:"

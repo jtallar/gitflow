@@ -741,7 +741,7 @@ require_branch() {
 }
 
 require_branch_absent() {
-	git_branch_exists "$1" && die "Branch '$1' already exists. Pick another name."
+	git_branch_exists "$1" && die "Branch '$1' already exists (local or remote). Pick another name."
 }
 
 require_local_branch_absent() {

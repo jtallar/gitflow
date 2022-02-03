@@ -813,6 +813,7 @@ r,[no]remote     Delete remote branch
 	parse_args "$@"
 
 	gitflow_require_name_arg
+	require_feature_name
 
 	# Require clean working tree, as we might need to checkout to other branch
 	require_clean_working_tree

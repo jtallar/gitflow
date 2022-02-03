@@ -652,7 +652,7 @@ require_feature_name() {
 	branch_name="$1"
 	[ -n "$1" ] || branch_name="$NAME"
 
-	startswith "$branch_name" "$HU_PREFIX" || die "Feature names must start with $HU_PREFIX."
+	startswith "$branch_name" "$HU_PREFIX" || die "$NAME is not a Feature name. Feature names must start with $HU_PREFIX."
 }
 
 gitflow_use_current_branch_version() {

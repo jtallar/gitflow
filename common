@@ -158,7 +158,21 @@ git_local_branch_exists() {
 }
 
 # $1 branch - Branch name to delete
+#
+# Uses flag force
+#
 git_local_branch_delete() {
+	[ -n "$1" ] || die "Missing branch name"
+
+	if flag force; then
+		git_do branch -D "$1" || die "Could not delete the $1."
+	else
+		git_do branch -d "$1" || die "Could not delete the $1."
+	fi
+}
+
+# $1 branch - Branch name to delete
+git_local_branch_delete_if_exists() {
 	[ -n "$1" ] || die "Missing branch name"
 	
 	if ! git_local_branch_exists "$1"; then
@@ -166,11 +180,7 @@ git_local_branch_delete() {
 		return 0
 	fi
 
-	if flag force; then
-		git_do branch -D "$1" || die "Could not delete the $1."
-	else
-		git_do branch -d "$1" || die "Could not delete the $1."
-	fi
+	git_local_branch_delete "$1"
 }
 
 git_remote_branch_exists() {
@@ -180,15 +190,23 @@ git_remote_branch_exists() {
 
 git_remote_branch_delete() {
 	[ -n "$1" ] || die "Missing branch name"
+	
+	git_do push "$ORIGIN" :"$1" || die "Could not delete the remote $1 in $ORIGIN."
+
+	# Update remote references after branch deletion
+	git_do remote update --prune
+	return 0
+}
+
+git_remote_branch_delete_if_exists() {
+	[ -n "$1" ] || die "Missing branch name"
 	if git_remote_branch_exists "origin/$1"; then
-		git_do push "$ORIGIN" :"$1" || die "Could not delete the remote $1 in $ORIGIN."
+		git_remote_branch_delete "$1"
 	else
 		warn "Trying to delete the remote branch $1, but it does not exists in $ORIGIN"
 		return 1
 	fi
-	
-	# Update remote references after branch deletion
-	git_do remote update --prune
+
 	return 0
 }
 
@@ -892,6 +910,10 @@ gitflow_merge_branch_to_base() {
 		echo
 		echo "You can then complete the finish by running it again:"
 		echo "    gitflow feature finish $feature_name"
+		echo
+		echo "Alternatively, you can cancel your merge by running"
+		echo "    git merge --abort"
+		echo "Or just run feature finish again, we will cancel it for you"
 		echo
 		exit 1
 	fi

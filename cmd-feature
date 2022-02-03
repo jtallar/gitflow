@@ -339,6 +339,10 @@ cmd_finish() {
 			echo "You can then complete the finish by running it again:"
 			echo "    gitflow feature finish $NAME"
 			echo
+			echo "Alternatively, you can cancel your merge by running"
+			echo "    git merge --abort"
+			echo "Or just run feature finish again, we will cancel it for you"
+			echo
 			exit 1
 		fi
 	fi
@@ -784,8 +788,6 @@ showcommands!    Show git commands while executing them
 	run_post_hook "$NAME" "$REMOTE" "$BRANCH"
 }
 
-# TODO: Fix delete, properly delete feature branch, aux-dev, aux-qa
-# If one fails, all crumbles (not merged, not exists, etc)
 cmd_delete() {
 	OPTIONS_SPEC="\
 gitflow feature delete [-h] [-f] [-r] <name>
@@ -797,7 +799,7 @@ showcommands!    Show git commands while executing them
 f,[no]force      Force deletion
 r,[no]remote     Delete remote branch
 "
-	local current_branch aux_dev_branch aux_qa_branch
+	local current_branch aux_dev_branch aux_qa_branch branch_arr print_arr
 
 	# Define flags
 	DEFINE_boolean 'force' false "force deletion" f
@@ -812,74 +814,50 @@ r,[no]remote     Delete remote branch
 
 	gitflow_require_name_arg
 
-	# Sanity checks
-	require_branch "$BRANCH"
+	# Require clean working tree, as we might need to checkout to other branch
+	require_clean_working_tree
 
 	# Update references from remote
-	git_do fetch -q "origin" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
-
-	# If local branch does not exist, can only remove remote branch
-	if ! git_local_branch_exists "$BRANCH"; then
-		echo "Local branch does not exist. Only attempting to remove remotes if required..."
-		if flag remote; then
-			git_remote_branch_delete "$BRANCH"
-			git_remote_branch_delete "$AUX_DEVELOP_PREFIX$BRANCH"
-			git_remote_branch_delete "$AUX_QA_PREFIX$BRANCH"
-		fi
-		exit 0
-	fi
+	git_do fetch -q "origin" || die "Could not fetch from remote '$ORIGIN'."
 
 	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
 	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't delete the feature branch '$BRANCH'."
+
+	current_branch=$(git_current_branch)
+	print_arr=()
 
 	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 
-	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
-	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
-	current_branch=$(git_current_branch)
-	# We can't delete a branch we are on, switch to the aux-master branch.
-	if [ "$BRANCH" = "$current_branch" ] || [ "$aux_dev_branch" = "$current_branch" ] || [ "$aux_qa_branch" = "$current_branch" ]; then
-		require_clean_working_tree
-		if git_local_branch_exists "$BASE_BRANCH"; then
-			git_do checkout "$BASE_BRANCH"
-		else
-			git_do checkout "$AUX_MASTER_BRANCH" || die "Could not check out branch '$AUX_MASTER_BRANCH'."
+	branch_arr=("$BRANCH" "$AUX_DEVELOP_PREFIX$BRANCH" "$AUX_QA_PREFIX$BRANCH")
+	bases_arr=("$AUX_MASTER_BRANCH" "$DEVELOP_BRANCH" "$QA_BRANCH")
+
+	for i in "${!branch_arr[@]}"; do
+		if [ "${branch_arr[$i]}" = "$current_branch" ]; then
+			git_do checkout "$BASE_BRANCH" || die "Could not check out branch '$BASE_BRANCH'."
 		fi
-	fi
-
-	if git_is_branch_merged_into "$BRANCH" "$BASE_BRANCH"; then
-		git_local_branch_delete "$BRANCH"
-		git_local_branch_delete "$aux_dev_branch"
-		git_local_branch_delete "$aux_qa_branch"
-
-		if flag remote; then
-			git_remote_branch_delete "$BRANCH"
-			git_remote_branch_delete "$aux_dev_branch"
-			git_remote_branch_delete "$aux_qa_branch"
-		fi
-	else
-		if flag force; then
-			git_local_branch_delete "$BRANCH"
-			git_local_branch_delete "$aux_dev_branch"
-			git_local_branch_delete "$aux_qa_branch"
-
-			if flag remote; then
-				git_remote_branch_delete "$BRANCH"
-				git_remote_branch_delete "$aux_dev_branch"
-				git_remote_branch_delete "$aux_qa_branch"
+		if git_local_branch_exists "${branch_arr[$i]}"; then
+			if ! git_is_branch_merged_into "${branch_arr[$i]}" "${bases_arr[$i]}" && ! flag force; then
+				warn "Skipping branch ${branch_arr[$i]}, which has not been merged into ${bases_arr[$i]} yet. Use -f to force its deletion."
+				continue
 			fi
-		else
-			die "Feature branch '$BRANCH' has been not been merged yet. Use -f to force the deletion."
+			git_local_branch_delete "${branch_arr[$i]}"
+			print_arr+=("- Deleted local branch '${branch_arr[$i]}'")
 		fi
-	fi
+		if flag remote && git_remote_branch_exists "origin/${branch_arr[$i]}"; then
+			git_remote_branch_delete "${branch_arr[$i]}"
+			print_arr+=("- Deleted remote branch 'origin/${branch_arr[$i]}'")
+		fi
+	done
 
-	# gitflow_config_remove_base_section "$BRANCH"
 	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	echo
 	echo "Summary of actions:"
-	echo "- Feature branch '$BRANCH' has been deleted."
-	flag remote && echo "- Feature branch '$BRANCH' in '$ORIGIN' has been deleted."
+	for msg in "${print_arr[@]}"; do
+		echo $msg
+	done
+	echo
 	echo "- You are now on branch '$(git_current_branch)'"
 	echo
 }

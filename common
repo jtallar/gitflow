@@ -2,6 +2,11 @@
 # $Id$
 # vim:et:ft=sh:sts=2:sw=2
 #
+# Some of the contents of this file are taken from 
+#	http://github.com/petervanderdoes/gitflow
+# Copyright notice below
+#
+# -------------------------------------------------------------------------------
 # git-flow -- A collection of Git extensions to provide high-level
 # repository operations for Vincent Driessen's branching model.
 #
@@ -36,6 +41,7 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# -------------------------------------------------------------------------------
 #
 
 #

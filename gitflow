@@ -14,7 +14,7 @@ FreeBSD|OpenBSD|NetBSD)
 	export FLAGS_GETOPT_CMD='/usr/local/bin/getopt'
 	export CURRENT_DIR=$(dirname "$(realpath "$0")")
 	;;
-Darwin)
+Darwin) # MacOS
 	PRG="$0"
 	while [ -h "$PRG" ]; do
 		link=$(readlink "$PRG")

@@ -375,7 +375,6 @@ gitflow_load_settings() {
 	export ORIGIN=$(git config --get remote.origin.url)
 	AUX_VARIABLE=$(awk -F 'git@github.com:|\.git' '{print $2}' <<< "$ORIGIN")
 	# Neither usernames nor repositories can have /
-	# TODO: Try in a Humand repository. Owner = GIT_USERNAME should be OK everywhere, but lets try a feature finish cmd
 	export GIT_USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
 	export GIT_REPOSITORY=$(cut -d'/' -f2- <<< "$AUX_VARIABLE")
 }

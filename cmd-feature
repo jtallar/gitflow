@@ -662,6 +662,9 @@ showcommands!    Show git commands while executing them
 	# Parse arguments
 	parse_args "$@"
 
+	gitflow_require_name_arg
+	require_feature_name
+
 	NAME=$(gitflow_resolve_nameprefix "$NAME" "$PREFIX")
 	if [ $? -eq 0 ]; then
 		BRANCH=$PREFIX$NAME
@@ -736,6 +739,7 @@ If local branch does not exist, use gitflow feature track.
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them
+r,[no]rebase     Pull with rebase
 "
 	local current_branch
 
@@ -750,14 +754,18 @@ showcommands!    Show git commands while executing them
 	fi
 
 	gitflow_use_current_branch_name
+	require_feature_name
 	require_clean_working_tree
 
-	# We already have a local branch called like this, so simply pull the
-	# remote changes in
+	if ! git_remote_branch_exists "origin/$NAME"; then
+		warn "Branch 'origin/$NAME' does not exist in $REMOTE."
+		exit 0
+	fi
+
+	# We already have a local branch called like this, so simply pull the remote changes in
 	if flag rebase; then
 		if ! git_do pull --rebase -q "$REMOTE" "$BRANCH"; then
-			warn "Pull was aborted. There might be conflicts during rebase or '$REMOTE' might be inaccessible."
-			exit 1
+			die "Pull was aborted. There might be conflicts during rebase or '$REMOTE' might be inaccessible."
 		fi
 	else
 		git_do pull "$REMOTE" "$BRANCH" || die "Failed to pull from remote '$REMOTE'."
@@ -839,9 +847,10 @@ r,[no]remote     Delete remote branch
 
 cmd_rename() {
 	OPTIONS_SPEC="\
-gitflow feature rename <new_name> [<new_name>]
+gitflow feature rename <new_name> [<name>]
 
-Rename a given feature branch locally
+Rename a given feature branch locally.
+When <name> is omitted the current branch is used, but only if it's a feature branch.
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them

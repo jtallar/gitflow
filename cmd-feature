@@ -212,13 +212,12 @@ showcommands!          Show git commands while executing them
 F,[no]fetch            Fetch from origin before performing finish. F and --nofetch set the flag to false. --fetch explicitly sets it to true (default)
 r,[no]rebase           Rebase before merging
 p,[no]preserve-merges  Preserve merges while rebasing
-[no]push               Push to origin after performing finish
-k,[no]keep             Keep branch after performing finish
-keepremote!        	   Keep the remote branch
-keeplocal!             Keep the local branch
-D,[no]force_delete     Force delete feature branch after finish
-S,[no]squash           Squash feature during merge
-no-ff!                 Never fast-forward during the merge
+S,[no]squash           Squash feature during merges
+no-ff!                 Never fast-forward during merges
+k,[no]keep             Always true -- Keep branch after performing finish
+keepremote!        	   Always true -- Keep the remote branch
+keeplocal!             Always true -- Keep the local branch
+D,[no]force_delete     Unused -- Force delete feature branch after finish
 "
 	local merge_conflict stage_num finish_branch finish_base aux_dev_branch aux_qa_branch
 	# finish_branch, finish_base will be used with merge conflicts

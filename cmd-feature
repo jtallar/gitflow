@@ -214,6 +214,7 @@ r,[no]rebase           Rebase before merging
 p,[no]preserve-merges  Preserve merges while rebasing
 S,[no]squash           Squash feature during merges
 no-ff!                 Never fast-forward during merges
+--
 k,[no]keep             Always true -- Keep branch after performing finish
 keepremote!        	   Always true -- Keep the remote branch
 keeplocal!             Always true -- Keep the local branch
@@ -501,6 +502,7 @@ helper_finish_merges(){
 
 	# TODO: Check if this works in MacOS/Windows
 	# Open editor to write PR body
+	mkdir -p "$DOT_GIT_DIR/.gitflow"
 	tmp_file="$DOT_GIT_DIR/.gitflow/pr_body.tmp"
 	echo "Replace this text with your PR body for all new PRs..." > "$tmp_file"
 	editor "$DOT_GIT_DIR/.gitflow/pr_body.tmp"

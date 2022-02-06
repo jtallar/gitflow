@@ -579,7 +579,6 @@ showcommands!    Show git commands while executing them
 	require_clean_working_tree
 	require_branch "$BRANCH"
 	git_do fetch -q "origin" || die "Could not fetch branch '$BRANCH' from remote '$ORIGIN'."
-	require_branch_absent "origin/$BRANCH"
 
 	# Create remote branch with remote tracking
 	git_do push -u "$ORIGIN" "$BRANCH:$BRANCH"

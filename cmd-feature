@@ -10,18 +10,18 @@ initialize() {
 
 usage() {
 	OPTIONS_SPEC="\
-gitflow feature [help]
-gitflow feature list
-gitflow feature start
-gitflow feature finish
-gitflow feature publish
-gitflow feature track
-gitflow feature diff
-gitflow feature checkout
-gitflow feature rebase
-gitflow feature pull
-gitflow feature delete
-gitflow feature rename
+gitflow feature [help]	--> Display this message
+gitflow feature list	--> Lists existing local feature branches
+gitflow feature start	--> Start new feature from base
+gitflow feature finish	--> Finish a feature (push, PRs, etc)
+gitflow feature publish	--> Publish feature to origin
+gitflow feature track	--> Get feature branch from origin
+gitflow feature diff	--> Show all changes in feature branch vs base
+gitflow feature checkout	--> Switch to feature branch
+gitflow feature rebase	--> Rebase feature branch on base
+gitflow feature pull	--> Pull feature branch from origin
+gitflow feature delete	--> Delete feature branch
+gitflow feature rename	--> Rename feature branch
 
 Manage your feature branches.
 

@@ -10,16 +10,18 @@ initialize() {
 
 usage() {
 	OPTIONS_SPEC="\
-gitflow feature [list]
+gitflow feature [help]
+gitflow feature list
 gitflow feature start
 gitflow feature finish
 gitflow feature publish
 gitflow feature track
 gitflow feature diff
-gitflow feature rebase
 gitflow feature checkout
+gitflow feature rebase
 gitflow feature pull
 gitflow feature delete
+gitflow feature rename
 
 Manage your feature branches.
 
@@ -30,7 +32,12 @@ For more specific help type the command followed by --help
 }
 
 cmd_default() {
-	cmd_list "$@"
+	cmd_help "$@"
+}
+
+cmd_help() {
+	usage
+	exit 0
 }
 
 cmd_list() {
@@ -57,7 +64,7 @@ v,verbose   Verbose (more) output
 		warn ""
 		warn "You can start a new feature branch:"
 		warn ""
-		warn "    ./gitflow feature start <name> [<base>]"
+		warn "    gitflow feature start <name> [<base>]"
 		warn ""
 		exit 0
 	fi
@@ -96,11 +103,6 @@ v,verbose   Verbose (more) output
 		fi
 		echo
 	done
-}
-
-cmd_help() {
-	usage
-	exit 0
 }
 
 # Parse arguments and set common variables

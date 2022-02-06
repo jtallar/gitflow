@@ -40,7 +40,7 @@ Darwin)
 esac
 
 usage() {
-	echo "usage: ./gitflow <subcommand>"
+	echo "usage: gitflow <subcommand>"
 	echo
 	echo "Available subcommands are:"
 	echo "feature     Manage your feature branches."

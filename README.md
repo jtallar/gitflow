@@ -17,6 +17,7 @@ Here is the list of requirements needed:
     - `cat`, `rm`, `mkdir`
     - `uname`, `dirname`, `realpath`, `readlink`
     - `sed`, `cut`, `grep`, `tr`, `wc`, `awk`
+    - `nano`
     - `git`
     - `curl`
     - `jq` (TODO: check if a min version is needed)

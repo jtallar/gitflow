@@ -49,7 +49,7 @@ check_requirements() {
     gnu_req_array+=("grep") # GNU Grep, will use it to test others...
     gnu_req_array+=("cat" "rm" "mkdir") # GNU tools for files
     gnu_req_array+=("uname" "dirname" "realpath" "readlink") # GNU tools for directories
-    gnu_req_array+=("sed" "cut" "tr" "wc") # GNU String search not grep
+    gnu_req_array+=("sed" "cut" "tr" "wc" "nano") # GNU String search not grep
 
     for cmd in "${gnu_req_array[@]}"; do
         if [ $verbose -eq 1 ]; then

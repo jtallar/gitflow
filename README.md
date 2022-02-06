@@ -1,10 +1,11 @@
 # Gitflow
 
-## Repo Requirements
+## Requirements
+### Repo Requirements
 - Run in an existing GIT repository
 - Use SSH to clone your repo (altough you should be, HTTPs is no longer supported in GitHub).
 
-## System Requirements
+### System Requirements
 You can check if you have everything required to run this program by running 
     `/bin/bash check-requirements`
 
@@ -23,7 +24,30 @@ Here is the list of requirements needed:
     - `jq` (>= 1.6)
 
 ## Setup
+To setup `gitflow`, you must do the following:
+- Create a `.env` file as explained in the file `.env-example`
 - Go to your terminal configuration file (eg: .bashrc, .zshrc) and add an alias pointing to the gitflow script
     - `alias gitflow="/full/path/to/gitflow`
     - Or if MacOS: `alias gitflow="/bin/bash /full/path/to/gitflow`
-- Create a `.env` file as explained in the file `.env-example`
+
+## Execution
+Run gitflow with
+    `gitflow <subcommand>`
+
+Available subcommands are
+- `feature` Manage your feature branches.
+
+### Subcommand - Feature
+Manage your feature branches. Available actions are
+- `gitflow feature [help]`	--> Display available actions
+- `gitflow feature list`	--> Lists existing local feature branches
+- `gitflow feature start`	--> Start new feature from base
+- `gitflow feature finish`	--> Finish a feature (push, PRs, etc)
+- `gitflow feature publish`	--> Publish feature to origin
+- `gitflow feature track`	--> Get feature branch from origin
+- `gitflow feature diff`	--> Show all changes in feature branch vs base
+- `gitflow feature checkout`	--> Switch to feature branch
+- `gitflow feature rebase`	--> Rebase feature branch on base
+- `gitflow feature pull`	--> Pull feature branch from origin
+- `gitflow feature delete`	--> Delete feature branch
+- `gitflow feature rename`	--> Rename feature branch

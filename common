@@ -651,6 +651,31 @@ gitflow_use_current_branch_name() {
 	fi
 }
 
+gitflow_use_current_branch_name_from_aux() {
+	local current_branch root_branch
+
+	current_branch=$(git_current_branch)
+
+	if startswith "$current_branch" "$HU_PREFIX"; then
+		BRANCH=$current_branch
+		NAME=${BRANCH}
+		return 0
+	else
+		if startswith "$current_branch" "$AUX_DEVELOP_PREFIX" || startswith "$current_branch" "$AUX_QA_PREFIX"; then
+			root_branch=$(cut -d'/' -f2 <<< "$current_branch")
+			if startswith "$root_branch" "$HU_PREFIX"; then
+				BRANCH=$root_branch
+				NAME=${BRANCH}
+				return 0
+			fi
+		fi
+	fi
+
+	warn "The current HEAD is no ${SUBCOMMAND} branch."
+	warn "Please specify a <name> argument."
+	exit 1
+}
+
 require_feature_name() {
 	local branch_name
 

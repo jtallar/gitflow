@@ -81,11 +81,11 @@ check_requirements() {
     curl --version | grep 'curl ..*\...*\..' >/dev/null
     check_return_code "$?" "curl"
 
-    ## jq - Looking for "jq-x.y"
+    ## jq - Looking for "jq-1.6 or higher"
     if [ $verbose -eq 1 ]; then
-        echo "jq --version | grep 'jq-..*\..' >/dev/null"
+        echo "jq --version | grep '\(jq-1\.\([6-9]\|[1-9][0-9]\)\)\|\(jq-[2-9]\..\)' >/dev/null"
     fi
-    jq --version | grep 'jq-..*\..' >/dev/null
+    jq --version | grep '\(jq-1\.\([6-9]\|[1-9][0-9]\)\)\|\(jq-[2-9]\..\)' >/dev/null
     check_return_code "$?" "jq"
 
     echo

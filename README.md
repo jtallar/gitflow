@@ -20,7 +20,7 @@ Here is the list of requirements needed:
     - `nano`
     - `git`
     - `curl`
-    - `jq` (TODO: check if a min version is needed)
+    - `jq` (>= 1.6)
 
 ## Setup
 - Go to your terminal configuration file (eg: .bashrc, .zshrc) and add an alias pointing to the gitflow script

@@ -46,6 +46,8 @@ check_requirements() {
 
     gnu_req_array=()
 
+    # TODO: --version flag not present in MacOS
+    # Check if all of these come installed. If so, no need to check for them
     gnu_req_array+=("grep") # GNU Grep, will use it to test others...
     gnu_req_array+=("cat" "rm" "mkdir") # GNU tools for files
     gnu_req_array+=("uname" "dirname" "realpath" "readlink") # GNU tools for directories

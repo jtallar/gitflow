@@ -375,9 +375,9 @@ gitflow_load_settings() {
 	export ORIGIN=$(git config --get remote.origin.url)
 	AUX_VARIABLE=$(awk -F 'git@github.com:|\.git' '{print $2}' <<< "$ORIGIN")
 	# Neither usernames nor repositories can have /
-	# TODO: Try in a Humand repository. Owner = USERNAME should be OK everywhere, but lets try a feature finish cmd
-	export USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
-	export REPOSITORY=$(cut -d'/' -f2- <<< "$AUX_VARIABLE")
+	# TODO: Try in a Humand repository. Owner = GIT_USERNAME should be OK everywhere, but lets try a feature finish cmd
+	export GIT_USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
+	export GIT_REPOSITORY=$(cut -d'/' -f2- <<< "$AUX_VARIABLE")
 }
 
 #
@@ -989,7 +989,7 @@ github_api_head() {
 #
 github_check_authenticated() {
 	local http_status
-	http_status=$(curl -I --write-out '%{http_code}' -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL/repos/$USERNAME/$REPOSITORY/pulls" -s -o /dev/null)
+	http_status=$(curl -I --write-out '%{http_code}' -H "$ACCEPT_HEADER" -H "$AUTHORIZATION_HEADER" "$GITHUB_API_BASE_URL/repos/$GIT_USERNAME/$GIT_REPOSITORY/pulls" -s -o /dev/null)
 
 	if [ $http_status -eq 200 ]; then
 		return 0
@@ -1002,7 +1002,7 @@ github_check_authenticated() {
 # List all Pull Requests from Repository at GitHub
 #
 github_list_all_pr() {
-	github_api_get "/repos/$USERNAME/$REPOSITORY/pulls?state=open&per_page=100"
+	github_api_get "/repos/$GIT_USERNAME/$GIT_REPOSITORY/pulls?state=open&per_page=100"
 }
 
 #
@@ -1030,8 +1030,8 @@ github_create_pr() {
 
 	body=$(string_to_json "$3") # Already includes starting and ending " "
 
-	req_body="{\"title\":\"$head\",\"base\":\"$base\", \"head\":\"$USERNAME:$head\", \"body\":$body}"
-	response=$(github_api_post "/repos/$USERNAME/$REPOSITORY/pulls" "$req_body")
+	req_body="{\"title\":\"$head\",\"base\":\"$base\", \"head\":\"$GIT_USERNAME:$head\", \"body\":$body}"
+	response=$(github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/pulls" "$req_body")
 
 	# Adding label to PR
 	issue_number=$(json_get_key "$response" ".number")
@@ -1040,7 +1040,7 @@ github_create_pr() {
 		return 1
 	fi
 
-	github_api_post "/repos/$USERNAME/$REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" >/dev/null 2>&1
+	github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" >/dev/null 2>&1
 
 	echo "$issue_number"
 }
@@ -1066,7 +1066,7 @@ github_pr_search_url() {
 	[ -n "$3" ] || status="open"
 
 	query="is:$status+base:$base+head:$head"
-	echo "https://github.com/$USERNAME/$REPOSITORY/pulls?q=$(url_encode $query)"
+	echo "https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pulls?q=$(url_encode $query)"
 }
 
 # $1 string - String to encode for URL

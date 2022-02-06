@@ -514,7 +514,7 @@ helper_finish_merges(){
 	issue_number=$(github_create_pr "$BRANCH" "$AUX_MASTER_BRANCH" "$pr_body")
 	return_code="$?"
 	if [ "$return_code" -eq 0 ]; then
-		print_arr+=("- Created PR from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number")
+		print_arr+=("- Created PR from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
 	else
 		print_arr+=("- PR already open from $BRANCH to $AUX_MASTER_BRANCH: $(github_pr_search_url $BRANCH $AUX_MASTER_BRANCH)")
 	fi
@@ -523,7 +523,7 @@ helper_finish_merges(){
 	issue_number=$(github_create_pr "$aux_dev_branch" "$DEVELOP_BRANCH" "$pr_body")
 	return_code="$?"
 	if [ "$return_code" -eq 0 ]; then
-		print_arr+=("- Created PR from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number")
+		print_arr+=("- Created PR from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
 	else
 		print_arr+=("- PR already open from $aux_dev_branch to $DEVELOP_BRANCH: $(github_pr_search_url $aux_dev_branch $DEVELOP_BRANCH)")
 	fi
@@ -532,7 +532,7 @@ helper_finish_merges(){
 	issue_number=$(github_create_pr "$aux_qa_branch" "$QA_BRANCH" "$pr_body")
 	return_code="$?"
 	if [ "$return_code" -eq 0 ]; then
-		print_arr+=("- Created PR from $aux_qa_branch to $QA_BRANCH: https://github.com/$USERNAME/$REPOSITORY/pull/$issue_number")
+		print_arr+=("- Created PR from $aux_qa_branch to $QA_BRANCH: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
 	else
 		print_arr+=("- PR already open from $aux_qa_branch to $QA_BRANCH: $(github_pr_search_url $aux_qa_branch $QA_BRANCH)")
 	fi

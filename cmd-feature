@@ -143,7 +143,7 @@ cmd_start() {
 	OPTIONS_SPEC="\
 gitflow feature start [-h] [-F] <name> [<base>]
 
-Start new feature <name>, optionally basing it on <base> instead of <aux-master>
+Start new feature <name>, optionally basing it on <base> instead of <$AUX_MASTER_BRANCH>
 By default, --fetch is used
 --
 h,help!          Show this help
@@ -175,6 +175,7 @@ F,[no]fetch      Pull base from origin before performing local operation. F and 
 	if flag fetch; then
 		git_do checkout "$base" || die "Failed to checkout to $base branch"
 		git_do pull "$ORIGIN" "$base" || die "Failed to pull from remote '$REMOTE'."
+		git_do fetch -q "origin" || die "Could not fetch branches from remote '$ORIGIN'."
 	fi
 
 	# If the origin branch counterpart exists, assert that the local branch

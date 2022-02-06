@@ -55,6 +55,9 @@ main() {
 	# Load environment variables
 	. "$CURRENT_DIR/.env"
 
+	# Check that all system requirements are OK
+	. "$CURRENT_DIR/check-requirements" >/dev/null
+
 	# Use the shFlags project to parse the command line arguments
 	. "$CURRENT_DIR/shFlags"
 	FLAGS_PARENT="./feature"

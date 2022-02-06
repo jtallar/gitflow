@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# Script used to try running every required command.
+# If any of these fail, exits with 1.
+# If everything is ok, exits with 0
+
+#
+# $1 status code - Return code to evaluate
+# $2 cmd - Command name tested
+# 
+# Uses $? - return code from previous call
+#
+check_return_code() {
+    local status_code cmd_name
+
+    status_code="$1"
+    cmd_name="$2"
+    [ -n "$1" ] || status_code=1
+    [ -n "$2" ] || cmd_name="..."
+
+    if [ $status_code -ne 0 ]; then
+        echo "Command $cmd_name is required and does not exist" >&2
+        exit 1
+    fi
+}
+
+check_requirements() {
+	local verbose=0 gnu_req_array status_code
+
+    if [ "$1" = "-v" ] || [ "$1" = "--verbose" ]; then
+        verbose=1
+    fi
+
+    # Check Bash version
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+        echo "You need to be using Bash version >= 4. Please upgrade"
+        exit 1
+    fi
+
+    # Test redirect to /dev/null
+    echo "Nothing" >/dev/null; status_code="$?"
+    if [ $status_code -ne 0 ]; then
+        echo "Cannot access /dev/null"
+        exit 1
+    fi
+
+    gnu_req_array=()
+
+    gnu_req_array+=("grep") # GNU Grep, will use it to test others...
+    gnu_req_array+=("cat" "rm" "mkdir") # GNU tools for files
+    gnu_req_array+=("uname" "dirname" "realpath" "readlink") # GNU tools for directories
+    gnu_req_array+=("sed" "cut" "tr" "wc") # GNU String search not grep
+
+    for cmd in "${gnu_req_array[@]}"; do
+        if [ $verbose -eq 1 ]; then
+            echo "$cmd --version | grep 'GNU' >/dev/null"
+        fi
+		$cmd --version | grep 'GNU' >/dev/null
+        check_return_code "$?" "$cmd"
+	done
+
+    # Other applications: "awk" "git" "curl" "jq"
+    ## awk - Looking for "awk x.y.z"
+    if [ $verbose -eq 1 ]; then
+        echo "awk -W version 2>/dev/null | grep 'awk ..*\...*\..' >/dev/null"
+    fi
+    awk -W version 2>/dev/null | grep 'awk ..*\...*\..' >/dev/null
+    check_return_code "$?" "awk"
+
+    ## git - Looking for "git version x.y.z"
+    if [ $verbose -eq 1 ]; then
+        echo "git --version | grep 'git version ..*\...*\..' >/dev/null"
+    fi
+    git --version | grep 'git version ..*\...*\..' >/dev/null
+    check_return_code "$?" "git"
+
+    ## curl - Looking for "curl x.y.z"
+    if [ $verbose -eq 1 ]; then
+        echo "curl --version | grep 'curl ..*\...*\..' >/dev/null"
+    fi
+    curl --version | grep 'curl ..*\...*\..' >/dev/null
+    check_return_code "$?" "curl"
+
+    ## jq - Looking for "jq-x.y"
+    if [ $verbose -eq 1 ]; then
+        echo "jq --version | grep 'jq-..*\..' >/dev/null"
+    fi
+    jq --version | grep 'jq-..*\..' >/dev/null
+    check_return_code "$?" "jq"
+
+    echo
+    echo "All required commands/programs are installed!"
+    return 0
+}
+check_requirements "$@"

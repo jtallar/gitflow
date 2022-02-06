@@ -784,7 +784,7 @@ Delete a given feature branch
 h,help!          Show this help
 showcommands!    Show git commands while executing them
 f,[no]force      Force deletion
-r,[no]remote     Delete remote branch
+r,[no]remote     Delete remote branch. This will also close open PRs without merging them
 "
 	local current_branch aux_dev_branch aux_qa_branch branch_arr print_arr
 

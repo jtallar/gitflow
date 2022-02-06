@@ -706,10 +706,8 @@ gitflow_rename_branch() {
 	require_branch "$BRANCH"
 	require_branch_absent "$NEW_BRANCH"
 
-	run_pre_hook "$NAME" "$ORIGIN" "$BRANCH"
 	git_do branch -m "$BRANCH" "$NEW_BRANCH" || die "Error renaming branch '$BRANCH' to '$NEW_BRANCH'"
 	gitflow_config_rename_sections "$BRANCH" "$NEW_BRANCH"
-	run_post_hook "$NAME" "$ORIGIN" "$BRANCH"
 
 	echo
 	echo "Summary of actions:"

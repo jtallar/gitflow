@@ -233,7 +233,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	DEFINE_boolean 'keeplocal' false "keep the local branch"
 	DEFINE_boolean 'force_delete' false "force delete feature branch after finish" D
 	DEFINE_boolean 'squash' false "squash feature during merge" S
-	DEFINE_boolean 'squash-info' false "add branch info during squash"
 	DEFINE_boolean 'no-ff!' false "Don't fast-forward ever during merge "
 
 	# Override defaults with values from config
@@ -246,7 +245,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	gitflow_override_flag_boolean   "feature.finish.keeplocal"         "keeplocal"
 	gitflow_override_flag_boolean   "feature.finish.force-delete"      "force_delete"
 	gitflow_override_flag_boolean   "feature.finish.squash"            "squash"
-	gitflow_override_flag_boolean   "feature.finish.squash-info"       "squash_info"
 	gitflow_override_flag_boolean   "feature.finish.no-ff"             "no_ff"
 
 	# Parse arguments

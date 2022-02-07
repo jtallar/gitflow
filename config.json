@@ -1,6 +1,12 @@
 {
-    "base_branch": "aux-master",
-    "default_config": {
+    "base-branches": [
+        "master",
+        "aux-master",
+        "qa",
+        "develop"
+    ],
+    "feature-base": "aux-master",
+    "default-config": {
         "start": {
             "fetch": true
         },
@@ -22,7 +28,7 @@
             "aux-branches": true
         }
     },
-    "finish_steps": [
+    "finish-steps": [
         {
             "base": "develop",
             "aux-branch": true,

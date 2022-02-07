@@ -252,8 +252,9 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		gitflow_use_current_branch_name_from_aux
+		gitflow_set_name_as_current_branch
 	fi
+	require_feature_name_or_aux
 
 	# Keeping both branches implies the --keep flag to be true.
 	if flag keepremote && flag keeplocal; then
@@ -352,10 +353,10 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	# Check if the local branches have all the commits from the remote branches
 	# If remote does not exist, push feature branch to remote
 	if git_remote_branch_exists "origin/$BRANCH"; then
-		require_branches_equal_or_push "$BRANCH" "origin/$BRANCH"
+		require_branch_equal_origin_or_push "$BRANCH"
 	else 
-		echo "Pushing $local_branch to origin..."
-		git_do push "$ORIGIN" "$local_branch" || die "Could not push branch '$local_branch' to remote '$ORIGIN'."
+		echo "Pushing $BRANCH to origin..."
+		git_do push "$ORIGIN" "$BRANCH:$BRANCH" || die "Could not push branch '$BRANCH' to remote '$ORIGIN'."
 	fi
 
 	# Check that all other branches are up to date
@@ -570,9 +571,9 @@ showcommands!    Show git commands while executing them
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		gitflow_use_current_branch_name
+		gitflow_set_name_as_current_branch
 	fi
-
+	require_feature_name
 
 	# Sanity checks
 	require_clean_working_tree
@@ -627,7 +628,8 @@ cmd_diff() {
 	OPTIONS_SPEC="\
 gitflow feature diff [-h] [<name|nameprefix>]
 
-Show all changes in <name> that are not in the base
+Show all changes in <name> that are not in the base.
+Local branch <name> may or may not be a feature branch
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them
@@ -639,8 +641,9 @@ showcommands!    Show git commands while executing them
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		gitflow_use_current_branch_name
+		gitflow_set_name_as_current_branch
 	fi
+	require_local_branch "$BRANCH"
 
 	# base=$(gitflow_config_get_base_branch $BRANCH)
 	base=${base:-$AUX_MASTER_BRANCH}
@@ -701,9 +704,9 @@ p,[no]preserve-merges  Preserve merges
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		gitflow_use_current_branch_name
+		gitflow_set_name_as_current_branch
 	fi
-
+	require_feature_name
 
 	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
 	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}

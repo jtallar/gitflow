@@ -636,6 +636,11 @@ gitflow_require_base_arg() {
 	fi
 }
 
+gitflow_set_name_as_current_branch() {
+	BRANCH=$(git_current_branch)
+	NAME=${BRANCH}
+}
+
 gitflow_use_current_branch_name() {
 	local current_branch
 
@@ -663,6 +668,32 @@ gitflow_use_current_branch_name_from_aux() {
 	else
 		if startswith "$current_branch" "$AUX_DEVELOP_PREFIX" || startswith "$current_branch" "$AUX_QA_PREFIX"; then
 			root_branch=$(cut -d'/' -f2 <<< "$current_branch")
+			if startswith "$root_branch" "$HU_PREFIX"; then
+				BRANCH=$root_branch
+				NAME=${BRANCH}
+				return 0
+			fi
+		fi
+	fi
+
+	warn "The current HEAD is no ${SUBCOMMAND} branch."
+	warn "Please specify a <name> argument."
+	exit 1
+}
+
+require_feature_name_or_aux() {
+	local branch_name root_branch
+
+	branch_name="$1"
+	[ -n "$1" ] || branch_name="$NAME"
+
+	if startswith "$branch_name" "$HU_PREFIX"; then
+		BRANCH=$branch_name
+		NAME=${BRANCH}
+		return 0
+	else
+		if startswith "$branch_name" "$AUX_DEVELOP_PREFIX" || startswith "$branch_name" "$AUX_QA_PREFIX"; then
+			root_branch=$(cut -d'/' -f2 <<< "$branch_name")
 			if startswith "$root_branch" "$HU_PREFIX"; then
 				BRANCH=$root_branch
 				NAME=${BRANCH}
@@ -822,19 +853,19 @@ check_branches_equal() {
 	return $compare_refs_result
 }
 
-require_branches_equal_or_push() {
-	local local_branch origin_branch
+require_branch_equal_origin_or_push() {
+	local branch_name origin_branch
 
-	local_branch="$1"
-	origin_branch="$2"
+	branch_name="$1"
+	origin_branch="origin/$branch_name"
 
-	check_branches_equal "$local_branch" "$origin_branch"
+	check_branches_equal "$branch_name" "$origin_branch"
 	result=$?
 
 	if [ $result -gt 0 ]; then
 		if [ $result -eq 2 ]; then
-			echo "Pushing $local_branch to origin..."
-			git_do push "$ORIGIN" "$local_branch" || die "Could not push branch '$local_branch' to remote '$ORIGIN'."
+			echo "Pushing $branch_name to origin..."
+			git_do push "$ORIGIN" "$branch_name:$branch_name" || die "Could not push branch '$branch_name' to remote '$ORIGIN'."
 		else
 			die "Cannot procede with these differences. Fix them and re-run."
 		fi

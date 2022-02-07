@@ -254,8 +254,7 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		BRANCH=$(git_current_branch)
-		NAME=${BRANCH}
+		gitflow_set_name_as_current_branch
 	fi
 	require_feature_name_or_aux
 
@@ -574,9 +573,9 @@ showcommands!    Show git commands while executing them
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		gitflow_use_current_branch_name
+		gitflow_set_name_as_current_branch
 	fi
-
+	require_feature_name
 
 	# Sanity checks
 	require_clean_working_tree
@@ -643,7 +642,7 @@ showcommands!    Show git commands while executing them
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		gitflow_use_current_branch_name
+		gitflow_set_name_as_current_branch
 	fi
 
 	# base=$(gitflow_config_get_base_branch $BRANCH)
@@ -705,9 +704,9 @@ p,[no]preserve-merges  Preserve merges
 
 	# Use current branch if no name is given
 	if [ "$NAME" = "" ]; then
-		gitflow_use_current_branch_name
+		gitflow_set_name_as_current_branch
 	fi
-
+	require_feature_name
 
 	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
 	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}

@@ -636,6 +636,11 @@ gitflow_require_base_arg() {
 	fi
 }
 
+gitflow_set_name_as_current_branch() {
+	BRANCH=$(git_current_branch)
+	NAME=${BRANCH}
+}
+
 gitflow_use_current_branch_name() {
 	local current_branch
 

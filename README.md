@@ -8,9 +8,6 @@
 - Use SSH to clone your repo (altough you should be, HTTPs is no longer supported in GitHub).
 
 ### System Requirements
-You can check if you have everything required to run this program by running 
-    `/bin/bash check-requirements`
-
 Here is the list of requirements needed:
 - Bash 4 or higher.
     - Here is an [article](https://itnext.io/upgrading-bash-on-macos-7138bd1066ba) on how to update Bash in MacOS. Skip the `Set Default Shell` section, that won't be needed.
@@ -25,6 +22,10 @@ Here is the list of requirements needed:
     - `git`
     - `curl`
     - `jq` (>= 1.6)
+
+You can check if you have everything required to run this program by running 
+    `/bin/bash check-requirements`
+The script will only check bash version, redirection to `/dev/null` and `jq` installation. Every other commands is assumed to exist (they come installed in MacOS)
 
 ## Setup
 To setup `gitflow`, you must do the following:

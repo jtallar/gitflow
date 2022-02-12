@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script used to try running every required command.
 # If any of these fail, exits with 1.
@@ -44,44 +44,41 @@ check_requirements() {
         exit 1
     fi
 
-    gnu_req_array=()
+    # gnu_req_array=()
+    # gnu_req_array+=("grep") # GNU Grep, will use it to test others...
+    # gnu_req_array+=("cat" "rm" "mkdir") # GNU tools for files
+    # gnu_req_array+=("uname" "dirname" "realpath" "readlink") # GNU tools for directories
+    # gnu_req_array+=("sed" "cut" "tr" "wc" "nano") # GNU String search not grep
 
-    # TODO: --version flag not present in MacOS
-    # Check if all of these come installed. If so, no need to check for them
-    gnu_req_array+=("grep") # GNU Grep, will use it to test others...
-    gnu_req_array+=("cat" "rm" "mkdir") # GNU tools for files
-    gnu_req_array+=("uname" "dirname" "realpath" "readlink") # GNU tools for directories
-    gnu_req_array+=("sed" "cut" "tr" "wc" "nano") # GNU String search not grep
+    # for cmd in "${gnu_req_array[@]}"; do
+    #     if [ $verbose -eq 1 ]; then
+    #         echo "$cmd --version | grep 'GNU' >/dev/null"
+    #     fi
+	# 	$cmd --version | grep 'GNU' >/dev/null
+    #     check_return_code "$?" "$cmd"
+	# done
 
-    for cmd in "${gnu_req_array[@]}"; do
-        if [ $verbose -eq 1 ]; then
-            echo "$cmd --version | grep 'GNU' >/dev/null"
-        fi
-		$cmd --version | grep 'GNU' >/dev/null
-        check_return_code "$?" "$cmd"
-	done
+    # # Other applications: "awk" "git" "curl" "jq"
+    # ## awk - Looking for "awk x.y.z"
+    # if [ $verbose -eq 1 ]; then
+    #     echo "awk -W version 2>/dev/null | grep 'awk ..*\...*\..' >/dev/null"
+    # fi
+    # awk -W version 2>/dev/null | grep 'awk ..*\...*\..' >/dev/null
+    # check_return_code "$?" "awk"
 
-    # Other applications: "awk" "git" "curl" "jq"
-    ## awk - Looking for "awk x.y.z"
-    if [ $verbose -eq 1 ]; then
-        echo "awk -W version 2>/dev/null | grep 'awk ..*\...*\..' >/dev/null"
-    fi
-    awk -W version 2>/dev/null | grep 'awk ..*\...*\..' >/dev/null
-    check_return_code "$?" "awk"
+    # ## git - Looking for "git version x.y.z"
+    # if [ $verbose -eq 1 ]; then
+    #     echo "git --version | grep 'git version ..*\...*\..' >/dev/null"
+    # fi
+    # git --version | grep 'git version ..*\...*\..' >/dev/null
+    # check_return_code "$?" "git"
 
-    ## git - Looking for "git version x.y.z"
-    if [ $verbose -eq 1 ]; then
-        echo "git --version | grep 'git version ..*\...*\..' >/dev/null"
-    fi
-    git --version | grep 'git version ..*\...*\..' >/dev/null
-    check_return_code "$?" "git"
-
-    ## curl - Looking for "curl x.y.z"
-    if [ $verbose -eq 1 ]; then
-        echo "curl --version | grep 'curl ..*\...*\..' >/dev/null"
-    fi
-    curl --version | grep 'curl ..*\...*\..' >/dev/null
-    check_return_code "$?" "curl"
+    # ## curl - Looking for "curl x.y.z"
+    # if [ $verbose -eq 1 ]; then
+    #     echo "curl --version | grep 'curl ..*\...*\..' >/dev/null"
+    # fi
+    # curl --version | grep 'curl ..*\...*\..' >/dev/null
+    # check_return_code "$?" "curl"
 
     ## jq - Looking for "jq-1.6 or higher"
     if [ $verbose -eq 1 ]; then

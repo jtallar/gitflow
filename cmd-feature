@@ -424,7 +424,7 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 #			 Helps when solving conflicts, to resume execution
 #
 helper_finish_merges(){
-	local keepmsg stage_num last_pr_body print_arr
+	local keepmsg stage_num last_pr_body print_arr all_steps
 
 	stage_num="$1"
 	[ -n "$1" ] || stage_num=0
@@ -433,7 +433,8 @@ helper_finish_merges(){
 	print_arr=()
 
 	# TODO: Misssing stages or similar for merge conflicts
-	while read step; do
+	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
+	for step in $all_steps; do
 		local base aux_branch aux_branch_prefix aux_branch_name head with_pr
 		local issue_number return_code pr_body tmp_file
 
@@ -503,13 +504,10 @@ helper_finish_merges(){
 		# Check if PR is wanted
 		if is_true "$with_pr"; then 
 			# Open editor to write PR body
-			pr_body="# PR from $head to $base. $last_pr_body"
-			mkdir -p "$DOT_GIT_DIR/.gitflow"
-			tmp_file="$DOT_GIT_DIR/.gitflow/pr_body.tmp"
-			echo "$pr_body" > "$tmp_file"
-			nano "$DOT_GIT_DIR/.gitflow/pr_body.tmp"
-			pr_body=$(cat $tmp_file)
-			rm "$tmp_file"
+			pr_body="# PR from $head to $base <-- DELETE ME 
+$last_pr_body"
+			pr_body=$(get_input_editor "$pr_body")
+			last_pr_body="$pr_body"
 
 			# Create PR from $head branch to develop branch if not open (label: develop)
 			issue_number=$(github_create_pr "$head" "$base" "$pr_body")
@@ -530,7 +528,7 @@ helper_finish_merges(){
 			print_arr+=("- Pushed branch '$base' to '$ORIGIN'")
 		fi
 		print_arr+=("")
-	done < <(jq -c '.[]' <<< "$FINISH_STEPS")
+	done
 	print_arr+=("--------------------------------------------")
 
 	# Checkout back to feature branch

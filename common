@@ -1175,7 +1175,6 @@ github_pr_search_url() {
 }
 
 # $1 string - initial text to display in editor
-# BELOW FUNCTION DOES NOT WORK because of tty
 get_input_editor() {
 	local tmp_file input
 

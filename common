@@ -84,6 +84,8 @@ max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
 startswith() { [ "$1" != "${1#$2}" ]; }
 endswith() { [ "$1" != "${1%$2}" ]; }
 
+is_true() { [ "$1" = "true" ]; }
+
 # Convenience functions for checking shFlags flags
 flag() { local FLAG; eval FLAG='$FLAGS_'$1; [ $FLAG -eq $FLAGS_TRUE ]; }
 noflag() { local FLAG; eval FLAG='$FLAGS_'$1; [ $FLAG -ne $FLAGS_TRUE ]; }
@@ -1021,6 +1023,26 @@ gitflow_parse_config() {
 	export FINISH_STEPS=$(json_get_key "$json_file" '."finish-steps"')
 }
 
+# $1 base - Branch to require if in BASE_BRANCHES
+require_branch_in_base_branches() {
+	# Using BASE_BRANCHES from config
+	if [ -z "$BASE_BRANCHES" ]; then
+		die "'BASE_BRANCHES' must be defined!"
+	fi
+
+	local base branch_name
+	base="$1"
+	[ -n "$1" ] || die "Missing base branch name"
+
+	while read i; do
+		branch_name=$(trim_line_quotes $i)
+		if [ "$base" = "$branch_name" ]; then
+			return 0
+		fi
+	done < <(jq -c '.[]' <<< "$BASE_BRANCHES")
+
+	die "$base is not one of the defined BASE_BRANCHES"
+}
 
 export ACCEPT_HEADER='Accept:application/vnd.github.v3+json'
 export AUTHORIZATION_HEADER='Authorization:token '"$GITHUB_PAT"''
@@ -1153,6 +1175,7 @@ github_pr_search_url() {
 }
 
 # $1 string - initial text to display in editor
+# BELOW FUNCTION DOES NOT WORK because of tty
 get_input_editor() {
 	local tmp_file input
 

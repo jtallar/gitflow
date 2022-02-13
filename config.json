@@ -6,7 +6,7 @@
         "develop"
     ],
     "feature-base": "aux-master",
-    "default-config": {
+    "default-config (NOT USED YET)": {
         "start": {
             "fetch": true
         },
@@ -33,18 +33,18 @@
             "base": "develop",
             "aux-branch": true,
             "aux-branch-prefix": "aux-dev/",
-            "PR": true
+            "with-pr": true
         },
         {
             "base": "qa",
             "aux-branch": true,
             "aux-branch-prefix": "aux-qa/",
-            "PR": true
+            "with-pr": true
         },
         {
             "base": "aux-master",
             "aux-branch": false,
-            "PR": true
+            "with-pr": true
         }
     ]
 }

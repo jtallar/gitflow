@@ -1040,6 +1040,7 @@ gitflow_parse_config() {
 	if [ -z "$FEATURE_BASE" ] || [ "$FEATURE_BASE" = "null" ]; then
 		die "'FEATURE_BASE' is missing in $CONFIG_FILENAME!"
 	fi
+	require_branch_in_base_branches "$FEATURE_BASE"
 
 	export DEFAULT_CONFIG=$(json_get_key "$json_file" '."default-config"')
 	if [ -z "$DEFAULT_CONFIG" ] || [ "$DEFAULT_CONFIG" = "null" ]; then

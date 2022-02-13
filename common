@@ -358,11 +358,18 @@ gitflow_has_branch_configured() {
 	[ "$branch" != "" ] && git_local_branch_exists "$branch"
 }
 
-# TODO: Use config base-branches
 gitflow_is_initialized() {
-	git_local_branch_exists "master"
-	git_local_branch_exists "aux-master"
-	git_local_branch_exists "develop"
+	# Using BASE_BRANCHES from config
+	if [ -z "$BASE_BRANCHES" ]; then
+		die "'BASE_BRANCHES' must be defined!"
+	fi
+
+	local branch_name
+
+	while read i; do
+		branch_name=$(trim_line_quotes $i)
+		git_local_branch_exists "$branch_name"
+	done < <(jq -c '.[]' <<< "$BASE_BRANCHES")
 }
 
 # Loading settings that can be overridden using git config

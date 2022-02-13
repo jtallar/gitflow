@@ -51,7 +51,7 @@ h,help!     Show this help
 v,verbose   Verbose (more) output
 "
 	local feature_branches current_branch width branch len
-	local base aux_master_sha branch_sha
+	local base feature_base_sha branch_sha
 
 	# Define flags
 	DEFINE_boolean 'verbose' false 'verbose (more) output' v
@@ -80,8 +80,8 @@ v,verbose   Verbose (more) output
 	width=$(($width+3-${#PREFIX}))
 
 	for branch in $feature_branches; do
-		base=$(git merge-base "$branch" "$AUX_MASTER_BRANCH")
-		aux_master_sha=$(git rev-parse "$AUX_MASTER_BRANCH")
+		base=$(git merge-base "$branch" "$FEATURE_BASE")
+		feature_base_sha=$(git rev-parse "$FEATURE_BASE")
 		branch_sha=$(git rev-parse "$branch")
 		if [ "$branch" = "$current_branch" ]; then
 			printf "* "
@@ -90,12 +90,12 @@ v,verbose   Verbose (more) output
 		fi
 		if flag verbose; then
 			printf "%-${width}s" "${branch#$PREFIX}"
-			if [ "$branch_sha" = "$aux_master_sha" ]; then
+			if [ "$branch_sha" = "$feature_base_sha" ]; then
 				printf "(no commits yet)"
 			elif [ "$base" = "$branch_sha" ]; then
-				printf "(is behind aux-master, may ff)"
-			elif [ "$base" = "$aux_master_sha" ]; then
-				printf "(based on latest aux-master)"
+				printf "(is behind $FEATURE_BASE, may ff)"
+			elif [ "$base" = "$feature_base_sha" ]; then
+				printf "(based on latest $FEATURE_BASE)"
 			else
 				printf "(may be rebased)"
 			fi
@@ -144,7 +144,7 @@ cmd_start() {
 	OPTIONS_SPEC="\
 gitflow feature start [-h] [-F] <name> [<base>]
 
-Start new feature <name>, optionally basing it on <base> instead of <$AUX_MASTER_BRANCH>
+Start new feature <name>, optionally basing it on <base> instead of <$FEATURE_BASE>
 By default, --fetch is used
 --
 h,help!          Show this help
@@ -162,7 +162,7 @@ F,[no]fetch      Pull base from origin before performing local operation. F and 
 	# Parse arguments
 	parse_args "$@"
 	eval set -- "${FLAGS_ARGV}"
-	base=${2:-$AUX_MASTER_BRANCH}
+	base=${2:-$FEATURE_BASE}
 
 	require_clean_working_tree
 	require_base_is_local_branch "$base"
@@ -184,8 +184,6 @@ F,[no]fetch      Pull base from origin before performing local operation. F and 
 	if git_remote_branch_exists "origin/$base"; then
 		require_branches_equal "$base" "origin/$base"
 	fi
-
-	# gitflow_config_set_base_branch $base $BRANCH
 
 	# create branch
 	gitflow_create_branch "$BRANCH" "$base"
@@ -276,8 +274,7 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
 	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
 
-	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	BASE_BRANCH=${FEATURE_BASE:-$MASTER_BRANCH}
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
 	# Detect if we're restoring from a merge conflict - include branch name in file
@@ -646,8 +643,8 @@ showcommands!    Show git commands while executing them
 	fi
 	require_local_branch "$BRANCH"
 
-	# base=$(gitflow_config_get_base_branch $BRANCH)
-	base=${base:-$AUX_MASTER_BRANCH}
+	base=${base:-$FEATURE_BASE}
+	base=${base:-$MASTER_BRANCH}
 
 	git_do diff "$base...$BRANCH"
 }
@@ -709,8 +706,7 @@ p,[no]preserve-merges  Preserve merges
 	fi
 	require_feature_name
 
-	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	BASE_BRANCH=${FEATURE_BASE:-$MASTER_BRANCH}
 
 	warn "Will try to rebase '$NAME' which is based on '$BASE_BRANCH'..."
 	if ! git_config_bool_exists "rebase.autostash"; then
@@ -809,8 +805,7 @@ r,[no]remote     Delete remote branch. This will also close open PRs without mer
 	# Update references from remote
 	git_do fetch -q "origin" || die "Could not fetch from remote '$ORIGIN'."
 
-	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	BASE_BRANCH=${FEATURE_BASE:-$MASTER_BRANCH}
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't delete the feature branch '$BRANCH'."
 
 	current_branch=$(git_current_branch)

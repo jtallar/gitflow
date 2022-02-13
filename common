@@ -358,6 +358,7 @@ gitflow_has_branch_configured() {
 	[ "$branch" != "" ] && git_local_branch_exists "$branch"
 }
 
+# TODO: Use config base-branches
 gitflow_is_initialized() {
 	git_local_branch_exists "master"
 	git_local_branch_exists "aux-master"
@@ -956,7 +957,7 @@ gitflow_merge_branch_to_base() {
 
 	if [ $? -ne 0 ]; then
 		# Oops.. we have a merge conflict!
-		# Write the given $BASE_BRANCH to a temporary file as we will
+		# Write the given $branch and $base to a temporary file as we will
 		# be needing it later.
 		mkdir -p "$DOT_GIT_DIR/.gitflow"
 		echo "$branch\\$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$feature_name"

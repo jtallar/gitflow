@@ -6,7 +6,7 @@
         "develop"
     ],
     "feature-base": "aux-master",
-    "default-config (NOT USED YET)": {
+    "default-config": {
         "start": {
             "fetch": true
         },

@@ -1018,9 +1018,24 @@ gitflow_parse_config() {
 	json_file=$(cat "$CONFIG_FILENAME")
 
 	export BASE_BRANCHES=$(json_get_key "$json_file" '."base-branches"')
+	if [ -z "$BASE_BRANCHES" ] || [ "$BASE_BRANCHES" = "null" ]; then
+		die "'BASE_BRANCHES' is missing in $CONFIG_FILENAME!"
+	fi
+
 	export FEATURE_BASE=$(trim_line_quotes $(json_get_key "$json_file" '."feature-base"'))
+	if [ -z "$FEATURE_BASE" ] || [ "$FEATURE_BASE" = "null" ]; then
+		die "'FEATURE_BASE' is missing in $CONFIG_FILENAME!"
+	fi
+
 	export DEFAULT_CONFIG=$(json_get_key "$json_file" '."default-config"')
+	if [ -z "$DEFAULT_CONFIG" ] || [ "$DEFAULT_CONFIG" = "null" ]; then
+		die "'DEFAULT_CONFIG' is missing in $CONFIG_FILENAME!"
+	fi
+
 	export FINISH_STEPS=$(json_get_key "$json_file" '."finish-steps"')
+	if [ -z "$FINISH_STEPS" ] || [ "$FINISH_STEPS" = "null" ]; then
+		die "'FINISH_STEPS' is missing in $CONFIG_FILENAME!"
+	fi
 }
 
 # $1 base - Branch to require if in BASE_BRANCHES
@@ -1175,13 +1190,18 @@ github_pr_search_url() {
 }
 
 # $1 string - initial text to display in editor
+# $2 tmp filename - Filename to use
 get_input_editor() {
-	local tmp_file input
+	local tmp_file input tmp_filename
+	
+	tmp_filename="$(filename_encode "$2")"
+	[ -n "$2" ] || tmp_filename="input.tmp"
+	echo "$tmp_filename"
 
 	mkdir -p "$DOT_GIT_DIR/.gitflow"
-	tmp_file="$DOT_GIT_DIR/.gitflow/input.tmp"
+	tmp_file="$DOT_GIT_DIR/.gitflow/$tmp_filename"
 	echo "$1" > "$tmp_file"
-	${VISUAL-nano} "$DOT_GIT_DIR/.gitflow/input.tmp" > $(tty)
+	${VISUAL-nano} "$DOT_GIT_DIR/.gitflow/$tmp_filename" > $(tty)
 	input=$(cat $tmp_file)
 	rm "$tmp_file"
 
@@ -1201,6 +1221,17 @@ url_encode() {
 
 	# Ignored to leave as is
 	# -e 's/+/%2b/g' 
+}
+
+# $1 string - String to encode for filename
+filename_encode() {
+	echo "$1" | sed -e 's/%//g' -e 's/ /-/g' -e 's/!//g' \
+		-e 's/"//g' -e "s/'//g" -e 's/#//g' -e 's/(//g' \
+		-e 's/)//g' -e 's/:/-/g' -e 's/;/-/g' -e 's/?//g' \
+		-e 's/@/at/g' -e 's/\$//g' -e 's/\&/~/g' -e 's/\*//g' \
+		-e 's/\//~/g' -e 's/\[//g' -e 's/\\/~/g' -e 's/\]//g' \
+		-e 's/`//g' -e 's/{//g' -e 's/|/~/g' -e 's/}//g' \
+		-e 's/=/~/g' -e 's/,//g' -e 's/</~/g' -e 's/>/~/g' -e 's/\./~/g'
 }
 
 # $1 json - JSON String to feed to JQ

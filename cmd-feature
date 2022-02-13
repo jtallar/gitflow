@@ -504,9 +504,8 @@ helper_finish_merges(){
 		# Check if PR is wanted
 		if is_true "$with_pr"; then 
 			# Open editor to write PR body
-			pr_body="# PR from $head to $base <-- DELETE ME 
-$last_pr_body"
-			pr_body=$(get_input_editor "$pr_body")
+			pr_body="$last_pr_body"
+			pr_body=$(get_input_editor "$pr_body" "from_${head}_to_${base}")
 			last_pr_body="$pr_body"
 
 			# Create PR from $head branch to develop branch if not open (label: develop)

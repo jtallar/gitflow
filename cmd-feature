@@ -357,11 +357,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 		git_do push "$ORIGIN" "$BRANCH:$BRANCH" || die "Could not push branch '$BRANCH' to remote '$ORIGIN'."
 	fi
 
-	# Check that all other branches are up to date
-	require_branches_equal_or_pull "$BASE_BRANCH" "origin/$BASE_BRANCH"
-	require_branches_equal_or_pull "$DEVELOP_BRANCH" "origin/$DEVELOP_BRANCH"
-	require_branches_equal_or_pull "$QA_BRANCH" "origin/$QA_BRANCH"
-
 	# If the user wants to rebase, do that first
 	if flag rebase; then
 		local _rebase_opts=""
@@ -439,6 +434,11 @@ helper_finish_merges(){
 
 	## STAGE 0
 	if [ $stage_num -le 0 ]; then
+		# Check that all other branches are up to date
+		require_branches_equal_or_pull "$BASE_BRANCH" "origin/$BASE_BRANCH"
+		require_branches_equal_or_pull "$DEVELOP_BRANCH" "origin/$DEVELOP_BRANCH"
+		require_branches_equal_or_pull "$QA_BRANCH" "origin/$QA_BRANCH"
+
 		# Create or merge into aux-dev/$BRANCH
 		if git_local_branch_exists "$aux_dev_branch"; then
 			gitflow_merge_branch_to_base "$BRANCH" "$aux_dev_branch"
@@ -716,6 +716,8 @@ p,[no]preserve-merges  Preserve merges
 	require_branch "$BRANCH"
 
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't rebase the feature branch '$BRANCH'."
+	# Update BASE_BRANCH from origin
+	require_branches_equal_or_pull "$BASE_BRANCH" "origin/$BASE_BRANCH"
 
 	git_do checkout -q "$BRANCH" || die "Could not check out branch '$BRANCH'."
 	if flag interactive; then

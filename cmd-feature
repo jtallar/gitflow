@@ -269,9 +269,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 		exit 1
 	fi
 
-	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
-	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
-
 	BASE_BRANCH=${FEATURE_BASE:-$MASTER_BRANCH}
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
@@ -357,45 +354,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 			exit 1
 		fi
 	fi
-
-	# Original situation: 
-	# 	- BASE_BRANCH = aux-master
-	#	- Default flags
-	#		* push, keep, keeplocal, keepremote = false
-	# 	- Requires that feature branch, base branch are equal to origin
-	# 	- Checkout to base branch
-	# 	- Merge feature branch into base branch
-	# 		* If merge conflicts, create MERGE_BASE file and exit
-	# 		* After commiting merge conflicts and rerunning command, follows with next step 
-	# 	- Push changes to base branch (if push == true)
-	# 	- If keep == true, it ends here
-	# 	- If keep == false
-	# 		* If keepremote == false, delete remote feature branch
-	# 		* If keeplocal == false, delete local feature branch
-
-	# Desired situation: 
-	# 	- BASE_BRANCH = aux-master
-	#	- Default flags
-	#		* push, keep, keeplocal, keepremote = true --> NOT USED
-	# 	- Requires that feature branch, base branch, qa branch, develop branch are equal to origin
-	# 	- Checkout to aux-dev/$NAME branch from feature branch
-	#		* If branch does not exist, create a new aux-dev branch from feature branch
-	#		* If branch exists, merge feature branch into aux-dev/$NAME branch
-	#		* Merge develop branch into aux-dev/$NAME branch
-	#			$ If merge conflicts, create MERGE_DEVELOP_TO_AUX_DEV file and exit
-	#		* Push changes to aux-dev/$NAME branch
-	#		* If open PR does not exist, create PR from aux-dev/$NAME branch to develop branch
-	#			$ Include label develop
-	# 	- Checkout to aux-qa/$NAME branch from feature branch
-	#		* If branch does not exist, create a new aux-qa branch from feature branch
-	#		* If branch exists, merge feature branch into aux-qa/$NAME branch
-	#		* Merge qa branch into aux-qa/$NAME branch
-	#			$ If merge conflicts, create MERGE_QA_TO_AUX_QA file and exit
-	#		* Push changes to aux-qa/$NAME branch
-	#		* If open PR does not exist, create PR from aux-qa/$NAME branch to qa branch
-	#			$ Include label qa
-	#	- If open PR does not exist, create PR from $NAME branch to aux-master branch
-	#		* Include label aux-master
 
 	helper_finish_merges
 }

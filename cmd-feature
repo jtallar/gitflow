@@ -498,12 +498,7 @@ helper_finish_merges(){
 	local issue_number return_code tmp_file pr_body
 
 	# Open editor to write PR body
-	mkdir -p "$DOT_GIT_DIR/.gitflow"
-	tmp_file="$DOT_GIT_DIR/.gitflow/pr_body.tmp"
-	echo "Replace this text with your PR body for all new PRs..." > "$tmp_file"
-	nano "$DOT_GIT_DIR/.gitflow/pr_body.tmp"
-	pr_body=$(cat $tmp_file)
-	rm "$tmp_file"
+	pr_body=$(get_input_editor "Replace this text with your PR body for all new PRs...")
 
 	print_arr+=("----------- PR -----------")
 	# Create PR from $BRANCH branch to aux-master branch if not open (label: aux-master)

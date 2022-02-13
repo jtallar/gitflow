@@ -1152,6 +1152,20 @@ github_pr_search_url() {
 	echo "https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pulls?q=$(url_encode $query)"
 }
 
+# $1 string - initial text to display in editor
+get_input_editor() {
+	local tmp_file input
+
+	mkdir -p "$DOT_GIT_DIR/.gitflow"
+	tmp_file="$DOT_GIT_DIR/.gitflow/input.tmp"
+	echo "$1" > "$tmp_file"
+	${VISUAL-nano} "$DOT_GIT_DIR/.gitflow/input.tmp" > $(tty)
+	input=$(cat $tmp_file)
+	rm "$tmp_file"
+
+	echo "$input"
+}
+
 # $1 string - String to encode for URL
 url_encode() {
     echo "$1" | sed -e 's/%/%25/g' -e 's/ /%20/g' -e 's/!/%21/g' \

@@ -34,6 +34,17 @@ To setup `gitflow`, you must do the following:
     - `alias gitflow="/full/path/to/gitflow`
     - Or if MacOS: `alias gitflow="/bin/bash /full/path/to/gitflow`
 
+## Configuration
+You can customize `gitflow` to adjust to your project's branching model. To do so, you must edit the file `config.json`. The configurations available are the following:
+- `base-branches`: array of strings with possible base branches to merge to from feature branches.
+- `feature-base`: base branch to create feature branches from
+- `default-config`: NOT IMPLEMENTED YET, will be used to override default configurations for features. The current repo state is the default configuration.
+- `finish-steps`: array of objects with steps to follow when running `feature finish` command. If error, steps are numbered from 1 to N. Each object must contain:
+    - `base`: base branch to merge feature into
+    - `aux-branch`: boolean that states whether merging should be done from an auxiliar branch
+    - `aux-branch-prefix`: prefix to use for the auxiliar branch. Only required if `aux-branch` is true
+    - `with-pr`: boolean that states if a PR should be created or if merging should be done during execution
+
 ## Execution
 Run gitflow with
     `gitflow <subcommand>`

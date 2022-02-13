@@ -930,18 +930,26 @@ require_branches_equal() {
 # 
 # $1 branch - Branch to merge into other branch
 # $2 base - Recipient branch of merge
-# $3 feature - Feature name (defaults to $NAME)
+# $3 step - Step number if merge conflict (defaults to 0)
+# $4 stage - Stage number if merge conflict (defaults to 0)
+# $5 print_arr - Array of prints up to here (defaults to [])
 #
 # Uses flags squash, no_ff
 #
 # Exits with error if merge conflict
 #
 gitflow_merge_branch_to_base() {
-	local branch base feature_name
+	local branch base step_num stage_num print_arr feature_name
 	branch="$1"
 	base="$2"
-	feature_name="$3"
-	[ -n "$3" ] || feature_name="$NAME"
+
+	step_num="$3"
+	[ -n "$3" ] || step_num="0"
+	stage_num="$4"
+	[ -n "$4" ] || stage_num="0"
+	print_arr=("${@:5}")
+
+	feature_name="$NAME"
 
 	require_local_branch "$branch"
 	require_local_branch "$base"
@@ -969,7 +977,13 @@ gitflow_merge_branch_to_base() {
 		# Write the given $branch and $base to a temporary file as we will
 		# be needing it later.
 		mkdir -p "$DOT_GIT_DIR/.gitflow"
-		echo "$branch\\$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$feature_name"
+		echo "$branch\\$base\\$step_num\\$stage_num\\$CONFIG_SHA_SUM" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$feature_name"
+		echo
+		echo "Summary of completed actions:"
+		for msg in "${print_arr[@]}"; do
+			echo $msg
+		done
+		echo "###############################################################################"
 		echo
 		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
 		echo "    git mergetool"
@@ -982,7 +996,6 @@ gitflow_merge_branch_to_base() {
 		echo
 		echo "Alternatively, you can cancel your merge by running"
 		echo "    git merge --abort"
-		echo "Or just run feature finish again, we will cancel it for you"
 		echo
 		exit 1
 	fi
@@ -1036,6 +1049,8 @@ gitflow_parse_config() {
 	if [ -z "$FINISH_STEPS" ] || [ "$FINISH_STEPS" = "null" ]; then
 		die "'FINISH_STEPS' is missing in $CONFIG_FILENAME!"
 	fi
+
+	export CONFIG_SHA_SUM=$(shasum -a 256 "$CONFIG_FILENAME")
 }
 
 # $1 base - Branch to require if in BASE_BRANCHES

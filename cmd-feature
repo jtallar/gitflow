@@ -219,8 +219,6 @@ keepremote!        	   Always true -- Keep the remote branch
 keeplocal!             Always true -- Keep the local branch
 D,[no]force_delete     Unused -- Force delete feature branch after finish
 "
-	local merge_conflict stage_num finish_branch finish_base aux_dev_branch aux_qa_branch
-	# finish_branch, finish_base will be used with merge conflicts
 
 	# Define flags
 	DEFINE_boolean 'fetch' true "fetch from $ORIGIN before performing finish" F
@@ -279,38 +277,23 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 
 	# Detect if we're restoring from a merge conflict - include branch name in file
 	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH" ]; then
+		local merge_conflict finish_branch finish_base finish_step finish_stage finish_config_sha
+
 		if git_is_clean_working_tree; then
 			merge_conflict=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH") # "$branch\\$base"
 			finish_branch=$(cut -d'\' -f1 <<< "$merge_conflict")
 			finish_base=$(cut -d'\' -f2 <<< "$merge_conflict")
+			finish_step=$(cut -d'\' -f3 <<< "$merge_conflict")
+			finish_stage=$(cut -d'\' -f4 <<< "$merge_conflict")
+			finish_config_sha=$(cut -d'\' -f5 <<< "$merge_conflict")
 
 			# Since the working tree is now clean, either the user did a
 			# successful merge manually, or the merge was cancelled.
 			# We detect this using git_is_branch_merged_into()
-			if git_is_branch_merged_into "$finish_branch" "$finish_base"; then
+			if [ "$CONFIG_SHA_SUM" = "$finish_config_sha" ] && git_is_branch_merged_into "$finish_branch" "$finish_base"; then
 				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH"
 				echo "Resuming after merge..."
-				case $merge_conflict in
-				"$BRANCH\\$aux_dev_branch")
-					stage_num=1
-					;;
-				"$DEVELOP_BRANCH\\$aux_dev_branch")
-					stage_num=2
-					;;
-				"$BRANCH\\$aux_qa_branch")
-					stage_num=3
-					;;
-				"$QA_BRANCH\\$aux_qa_branch")
-					stage_num=4
-					;;
-				*)
-					echo "Invalid merge conflict saved: $merge_conflict."
-					echo "Cancelling merge, please try running the command again."
-					exit 1
-					;;
-				esac
-
-				helper_finish_merges "$stage_num"
+				helper_finish_merges "$finish_step" "$finish_stage"
 				exit 0
 			else
 				# If the user cancelled the merge and decided to wait until
@@ -424,10 +407,14 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 #			 Helps when solving conflicts, to resume execution
 #
 helper_finish_merges(){
-	local keepmsg stage_num last_pr_body print_arr all_steps
+	local keepmsg last_pr_body print_arr all_steps
+	local step_num stage_num step_count
 
-	stage_num="$1"
-	[ -n "$1" ] || stage_num=0
+	step_num="$1"
+	[ -n "$1" ] || step_num=0
+	stage_num="$2"
+	[ -n "$2" ] || stage_num=0
+	step_count=0
 
 	last_pr_body="Replace this text with your PR body for all new PRs..."
 	print_arr=()
@@ -435,6 +422,11 @@ helper_finish_merges(){
 	# TODO: Misssing stages or similar for merge conflicts
 	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
 	for step in $all_steps; do
+		(( step_count += 1 ))
+		if [ $step_count -lt $step_num ]; then
+			continue
+		fi
+
 		local base aux_branch aux_branch_prefix aux_branch_name head with_pr
 		local issue_number return_code pr_body tmp_file
 
@@ -476,30 +468,39 @@ helper_finish_merges(){
 
 			head="$aux_branch_name"
 
-			# Create or merge into $aux_branch_prefix/$BRANCH
-			if git_local_branch_exists "$aux_branch_name"; then
-				gitflow_merge_branch_to_base "$BRANCH" "$aux_branch_name"
-				print_arr+=("- Updated '$aux_branch_name' with '$BRANCH'")
-			else
-				if git_remote_branch_exists "$aux_branch_name"; then
-					die "Branch $aux_branch_name exists in $ORIGIN, but not found locally."
+			# STAGE 0
+			if [ $stage_num -le 0 ]; then
+				# Create or merge into $aux_branch_prefix/$BRANCH
+				if git_local_branch_exists "$aux_branch_name"; then
+					gitflow_merge_branch_to_base "$BRANCH" "$aux_branch_name" "$step_count" "1" "${print_arr[@]}"
+					print_arr+=("- Updated '$aux_branch_name' with '$BRANCH'")
 				else
-					gitflow_create_branch "$aux_branch_name" "$BRANCH"
-					print_arr+=("- Created '$aux_branch_name' with '$BRANCH'")
+					if git_remote_branch_exists "$aux_branch_name"; then
+						die "Branch $aux_branch_name exists in $ORIGIN, but not found locally."
+					else
+						gitflow_create_branch "$aux_branch_name" "$BRANCH"
+						print_arr+=("- Created '$aux_branch_name' with '$BRANCH'")
+					fi
 				fi
 			fi
 		else
 			head="$BRANCH"
 		fi
 
-		# Merge $base into $head
-		gitflow_merge_branch_to_base "$base" "$head"
-		print_arr+=("- Merged '$base' into '$head'")
+		# STAGE 1
+		if [ $stage_num -le 1 ]; then
+			# Merge $base into $head
+			gitflow_merge_branch_to_base "$base" "$head" "$step_count" "2" "${print_arr[@]}"
+			print_arr+=("- Merged '$base' into '$head'")
+		fi
 
-		# Create remote branch with remote tracking for $head
-		git_do push -u "$ORIGIN" "$head:$head" || die "Could not push branch '$head' to remote '$ORIGIN'."
-		git_do fetch -q "origin" "$head" || die "Could not fetch branch '$head' from remote '$ORIGIN'."
-		print_arr+=("- Pushed branch '$head' to '$ORIGIN'")
+		# STAGE 2
+		if [ $stage_num -le 2 ]; then
+			# Create remote branch with remote tracking for $head
+			git_do push -u "$ORIGIN" "$head:$head" || die "Could not push branch '$head' to remote '$ORIGIN'."
+			git_do fetch -q "origin" "$head" || die "Could not fetch branch '$head' from remote '$ORIGIN'."
+			print_arr+=("- Pushed branch '$head' to '$ORIGIN'")
+		fi
 
 		# Check if PR is wanted
 		if is_true "$with_pr"; then 
@@ -517,15 +518,23 @@ helper_finish_merges(){
 				print_arr+=("- PR already open from $head to $base: $(github_pr_search_url $head $base)")
 			fi
 		else
-			# Merge $head into $base
-			gitflow_merge_branch_to_base "$head" "$base"
-			print_arr+=("- Merged '$head' into '$base'")
+			# STAGE 2
+			if [ $stage_num -le 2 ]; then
+				# Merge $head into $base
+				gitflow_merge_branch_to_base "$head" "$base" "$step_count" "3" "${print_arr[@]}"
+				print_arr+=("- Merged '$head' into '$base'")
+			fi
 
+			# STAGE 3
 			# Update remote $base branch
 			git_do push -u "$ORIGIN" "$base:$base" || die "Could not push branch '$base' to remote '$ORIGIN'."
 			git_do fetch -q "origin" "$base" || die "Could not fetch branch '$base' from remote '$ORIGIN'."
 			print_arr+=("- Pushed branch '$base' to '$ORIGIN'")
 		fi
+
+		# If we got till the end, we might have gone through incomplete steps.
+		# Next steps should be done entirely
+		stage_num=0
 		print_arr+=("")
 	done
 	print_arr+=("--------------------------------------------")

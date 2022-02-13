@@ -985,9 +985,10 @@ gitflow_merge_branch_to_base() {
 		done
 		echo "###############################################################################"
 		echo
-		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
+		echo "There were merge conflicts when merging $branch to $base."
+		echo "To resolve the merge conflict manually, use:"
 		echo "    git mergetool"
-		echo "Or just go to your project with your favorite IDE and it will prompt you to solve the conflicts."
+		echo "Or just go to your project in an IDE and it will prompt you to solve conflicts."
 		echo "Then, commit your merge. You can do this by running"
 		echo "    git commit"
 		echo
@@ -1211,13 +1212,12 @@ get_input_editor() {
 	
 	tmp_filename="$(filename_encode "$2")"
 	[ -n "$2" ] || tmp_filename="input.tmp"
-	echo "$tmp_filename"
 
 	mkdir -p "$DOT_GIT_DIR/.gitflow"
 	tmp_file="$DOT_GIT_DIR/.gitflow/$tmp_filename"
 	echo "$1" > "$tmp_file"
 	${VISUAL-nano} "$DOT_GIT_DIR/.gitflow/$tmp_filename" > $(tty)
-	input=$(cat $tmp_file)
+	input=$(cat "$tmp_file")
 	rm "$tmp_file"
 
 	echo "$input"

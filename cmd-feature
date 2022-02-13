@@ -474,6 +474,8 @@ helper_finish_merges(){
 			fi
 			aux_branch_name="$aux_branch_prefix$BRANCH"
 
+			head="$aux_branch_name"
+
 			# Create or merge into $aux_branch_prefix/$BRANCH
 			if git_local_branch_exists "$aux_branch_name"; then
 				gitflow_merge_branch_to_base "$BRANCH" "$aux_branch_name"
@@ -486,8 +488,6 @@ helper_finish_merges(){
 					print_arr+=("- Created '$aux_branch_name' with '$BRANCH'")
 				fi
 			fi
-
-			head="$aux_branch_name"
 		else
 			head="$BRANCH"
 		fi

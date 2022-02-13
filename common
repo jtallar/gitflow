@@ -1093,7 +1093,7 @@ github_create_pr() {
 	response=$(github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/pulls" "$req_body")
 
 	# Adding label to PR
-	issue_number=$(json_get_key "$response" ".number")
+	issue_number=$(json_get_key "$response" '."number"')
 
 	if [ -z "$issue_number" ] || [ "$issue_number" = "null" ]; then
 		return 1
@@ -1146,7 +1146,13 @@ url_encode() {
 # $1 json - JSON String to feed to JQ
 # $2 key - Key to look in JSON string
 json_get_key() {
-	jq "$2" <<< "$1" | tr -d "\""
+	jq "$2" <<< "$1"
+}
+
+# $1 line - String line to trim quotes from
+#			Will not work on multi-lined
+trim_line_quotes() {
+	tr -d "\"" <<< "$1"
 }
 
 # $1 string - String to convert to JSON

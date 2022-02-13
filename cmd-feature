@@ -433,17 +433,17 @@ helper_finish_merges(){
 		# Get properties from config
 		base=$(trim_line_quotes $(json_get_key "$step" '."base"'))
 		if [ -z "$base" ] || [ "$base" = "null" ]; then
-			die "Missing aux-branch-prefix property in finish-step"
+			die "Missing aux-branch-prefix property in finish-step $step_count"
 		fi
 
 		aux_branch=$(json_get_key "$step" '."aux-branch"')
 		if [ -z "$aux_branch" ] || [ "$aux_branch" = "null" ]; then
-			die "Missing aux-branch-prefix property in finish-step"
+			die "Missing aux-branch-prefix property in finish-step $step_count"
 		fi
 
 		with_pr=$(json_get_key "$step" '."with-pr"')
 		if [ -z "$with_pr" ] || [ "$with_pr" = "null" ]; then
-			die "Missing aux-branch-prefix property in finish-step"
+			die "Missing aux-branch-prefix property in finish-step $step_count"
 		fi
 
 		print_arr+=("---------------- $base ----------------")
@@ -462,7 +462,7 @@ helper_finish_merges(){
 
 			# Check that aux-branch-prefix is valid
 			if [ -z "$aux_branch_prefix" ] || [ "$aux_branch_prefix" = "null" ]; then
-				die "Missing aux-branch-prefix property in finish-step"
+				die "Missing aux-branch-prefix property in finish-step $step_count"
 			fi
 			aux_branch_name="$aux_branch_prefix$BRANCH"
 

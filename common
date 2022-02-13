@@ -998,6 +998,22 @@ gitflow_create_branch() {
 	git_do checkout -b "$branch" "$base" || die "Could not create branch '$branch' from '$base'."
 }
 
+# Parse configuration file at $CONFIG_FILENAME
+gitflow_parse_config() {
+	if [ -z "$CONFIG_FILENAME" ]; then
+		die "'CONFIG_FILENAME' must be defined!"
+	fi
+	
+	local json_file
+	json_file=$(cat "$CONFIG_FILENAME")
+
+	export BASE_BRANCHES=$(json_get_key "$json_file" '."base-branches"')
+	export FEATURE_BASE=$(trim_line_quotes $(json_get_key "$json_file" '."feature-base"'))
+	export DEFAULT_CONFIG=$(json_get_key "$json_file" '."default-config"')
+	export FINISH_STEPS=$(json_get_key "$json_file" '."finish-steps"')
+}
+
+
 export ACCEPT_HEADER='Accept:application/vnd.github.v3+json'
 export AUTHORIZATION_HEADER='Authorization:token '"$GITHUB_PAT"''
 export GITHUB_API_BASE_URL='https://api.github.com'

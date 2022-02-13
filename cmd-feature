@@ -4,6 +4,7 @@ initialize() {
 	require_git_repo
 	require_gitflow_initialized
 	gitflow_load_settings
+	gitflow_parse_config
 	PREFIX=""
     HU_PREFIX="HU"
 }

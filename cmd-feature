@@ -377,7 +377,6 @@ helper_finish_merges(){
 	last_pr_body="Replace this text with your PR body for all new PRs..."
 	print_arr=()
 
-	# TODO: Misssing stages or similar for merge conflicts
 	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
 	for step in $all_steps; do
 		(( step_count += 1 ))
@@ -740,14 +739,14 @@ cmd_delete() {
 	OPTIONS_SPEC="\
 gitflow feature delete [-h] [-f] [-r] <name>
 
-Delete a given feature branch
+Delete a given feature branch with auxiliary branches based on config
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them
 f,[no]force      Force deletion
 r,[no]remote     Delete remote branch. This will also close open PRs without merging them
 "
-	local current_branch aux_dev_branch aux_qa_branch branch_arr print_arr
+	local current_branch branch_arr print_arr
 
 	# Define flags
 	DEFINE_boolean 'force' false "force deletion" f
@@ -775,8 +774,20 @@ r,[no]remote     Delete remote branch. This will also close open PRs without mer
 	current_branch=$(git_current_branch)
 	print_arr=()
 
-	branch_arr=("$BRANCH" "$AUX_DEVELOP_PREFIX$BRANCH" "$AUX_QA_PREFIX$BRANCH")
-	bases_arr=("$AUX_MASTER_BRANCH" "$DEVELOP_BRANCH" "$QA_BRANCH")
+	branch_arr=("$BRANCH")
+	bases_arr=("$FEATURE_BASE")
+
+	local base aux_branch aux_branch_prefix all_steps
+	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
+	for step in $all_steps; do
+		base=$(trim_line_quotes $(json_get_key "$step" '."base"'))
+		aux_branch=$(json_get_key "$step" '."aux-branch"')
+		if is_true "$aux_branch"; then 
+			aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
+			branch_arr+=("$aux_branch_prefix$BRANCH")
+			bases_arr+=("$base")
+		fi
+	done
 
 	for i in "${!branch_arr[@]}"; do
 		if [ "${branch_arr[$i]}" = "$current_branch" ]; then

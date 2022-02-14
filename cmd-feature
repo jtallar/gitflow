@@ -269,7 +269,7 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 		exit 1
 	fi
 
-	BASE_BRANCH=${FEATURE_BASE:-$MASTER_BRANCH}
+	BASE_BRANCH="$FEATURE_BASE"
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
 	# Detect if we're restoring from a merge conflict - include branch name in file
@@ -605,7 +605,6 @@ showcommands!    Show git commands while executing them
 	require_local_branch "$BRANCH"
 
 	base=${base:-$FEATURE_BASE}
-	base=${base:-$MASTER_BRANCH}
 
 	git_do diff "$base...$BRANCH"
 }
@@ -667,7 +666,7 @@ p,[no]preserve-merges  Preserve merges
 	fi
 	require_feature_name
 
-	BASE_BRANCH=${FEATURE_BASE:-$MASTER_BRANCH}
+	BASE_BRANCH="$FEATURE_BASE"
 
 	warn "Will try to rebase '$NAME' which is based on '$BASE_BRANCH'..."
 	if ! git_config_bool_exists "rebase.autostash"; then
@@ -768,7 +767,7 @@ r,[no]remote     Delete remote branch. This will also close open PRs without mer
 	# Update references from remote
 	git_do fetch -q "origin" || die "Could not fetch from remote '$ORIGIN'."
 
-	BASE_BRANCH=${FEATURE_BASE:-$MASTER_BRANCH}
+	BASE_BRANCH="$FEATURE_BASE"
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't delete the feature branch '$BRANCH'."
 
 	current_branch=$(git_current_branch)

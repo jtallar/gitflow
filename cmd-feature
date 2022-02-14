@@ -466,7 +466,7 @@ helper_finish_merges(){
 			pr_body=$(get_input_editor "$pr_body" "from_${head}_to_${base}")
 			last_pr_body="$pr_body"
 
-			# Create PR from $head branch to develop branch if not open (label: develop)
+			# Create PR from $head branch to $base branch if not open (label: $base)
 			issue_number=$(github_create_pr "$head" "$base" "$pr_body")
 			return_code="$?"
 			if [ "$return_code" -eq 0 ]; then

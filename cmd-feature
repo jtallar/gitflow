@@ -781,8 +781,9 @@ r,[no]remote     Delete remote branch. This will also close open PRs without mer
 	for step in $all_steps; do
 		base=$(trim_line_quotes $(json_get_key "$step" '."base"'))
 		aux_branch=$(json_get_key "$step" '."aux-branch"')
-		if is_true "$aux_branch"; then 
-			aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
+		aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
+
+		if is_true "$aux_branch" && [ "$aux_branch_prefix" ] && [ ! "$aux_branch_prefix" = "null" ]; then
 			branch_arr+=("$aux_branch_prefix$BRANCH")
 			bases_arr+=("$base")
 		fi

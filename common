@@ -352,12 +352,12 @@ gitflow_is_initialized() {
 		die "'BASE_BRANCHES' must be defined!"
 	fi
 
-	local branch_name
-
-	while read i; do
-		branch_name=$(trim_line_quotes $i)
+	local branch_name all_bases
+	all_bases=$(jq -c '.[]' <<< "$BASE_BRANCHES")
+	for base_i in $all_bases; do
+		branch_name=$(trim_line_quotes $base_i)
 		git_local_branch_exists "$branch_name"
-	done < <(jq -c '.[]' <<< "$BASE_BRANCHES")
+	done
 }
 
 gitflow_get_remote_default_branch() {
@@ -1074,16 +1074,17 @@ require_branch_in_base_branches() {
 		die "'BASE_BRANCHES' must be defined!"
 	fi
 
-	local base branch_name
+	local base branch_name all_bases
 	base="$1"
 	[ -n "$1" ] || die "Missing base branch name"
 
-	while read i; do
-		branch_name=$(trim_line_quotes $i)
+	all_bases=$(jq -c '.[]' <<< "$BASE_BRANCHES")
+	for base_i in $all_bases; do
+		branch_name=$(trim_line_quotes $base_i)
 		if [ "$base" = "$branch_name" ]; then
 			return 0
 		fi
-	done < <(jq -c '.[]' <<< "$BASE_BRANCHES")
+	done
 
 	die "$base is not one of the defined BASE_BRANCHES"
 }

@@ -1,0 +1,51 @@
+{
+    "base-branches": [
+        "master",
+        "aux-master",
+        "qa",
+        "develop"
+    ],
+    "feature-base": "aux-master",
+    "default-config": {
+        "start": {
+            "fetch": true
+        },
+        "finish": {
+            "fetch": true,
+            "rebase": false,
+            "preserve-merges": false,
+            "push": false,
+            "squash": false,
+            "no-ff!": false
+        },
+        "rebase": {
+            "interactive": false,
+            "preserve-merges": false
+        },
+        "delete": {
+            "force": false,
+            "remote": false,
+            "aux-branches": true
+        }
+    },
+    "finish-steps": [
+        {
+            "base": "develop",
+            "aux-branch": true,
+            "aux-branch-prefix": "aux-dev/",
+            "with-pr": true
+        },
+        {
+            "base": "qa",
+            "aux-branch": true,
+            "aux-branch-prefix": "aux-qa/",
+            "with-pr": true
+        },
+        {
+            "base": "aux-master",
+            "aux-branch": false,
+            "with-pr": true
+        }
+    ]
+}
+

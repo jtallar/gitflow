@@ -84,6 +84,8 @@ max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
 startswith() { [ "$1" != "${1#$2}" ]; }
 endswith() { [ "$1" != "${1%$2}" ]; }
 
+is_true() { [ "$1" = "true" ]; }
+
 # Convenience functions for checking shFlags flags
 flag() { local FLAG; eval FLAG='$FLAGS_'$1; [ $FLAG -eq $FLAGS_TRUE ]; }
 noflag() { local FLAG; eval FLAG='$FLAGS_'$1; [ $FLAG -ne $FLAGS_TRUE ]; }
@@ -327,20 +329,6 @@ gitflow_has_master_configured() {
 	[ "$master" != "" ] && git_local_branch_exists "$master"
 }
 
-gitflow_has_develop_configured() {
-	local develop
-
-	develop=$(git config --get gitflow.branch.develop)
-	[ "$develop" != "" ] && git_local_branch_exists "$develop"
-}
-
-gitflow_has_aux_master_configured() {
-	local aux_master
-
-	aux_master=$(git config --get gitflow.branch.aux-master)
-	[ "$aux_master" != "" ] && git_local_branch_exists "$aux_master"
-}
-
 #
 # gitflow_has_branch_configured()
 #
@@ -359,9 +347,21 @@ gitflow_has_branch_configured() {
 }
 
 gitflow_is_initialized() {
-	git_local_branch_exists "master"
-	git_local_branch_exists "aux-master"
-	git_local_branch_exists "develop"
+	# Using BASE_BRANCHES from config
+	if [ -z "$BASE_BRANCHES" ]; then
+		die "'BASE_BRANCHES' must be defined!"
+	fi
+
+	local branch_name all_bases
+	all_bases=$(jq -c '.[]' <<< "$BASE_BRANCHES")
+	for base_i in $all_bases; do
+		branch_name=$(trim_line_quotes $base_i)
+		git_local_branch_exists "$branch_name"
+	done
+}
+
+gitflow_get_remote_default_branch() {
+	git remote show origin | sed -n '/HEAD branch/s/.*: //p'
 }
 
 # Loading settings that can be overridden using git config
@@ -372,12 +372,6 @@ gitflow_load_settings() {
 	DOT_GIT_DIR=$(git rev-parse --git-dir)
 	export DOT_GIT_DIR="$(cd ${DOT_GIT_DIR} >/dev/null 2>&1 && pwd)"
 	export HOOKS_DIR="$(git config --get gitflow.path.hooks || echo ${DOT_GIT_DIR}/hooks)" # the second option is used to support previous versions of git-flow
-	export MASTER_BRANCH="master"
-	export DEVELOP_BRANCH="develop"
-	export AUX_DEVELOP_PREFIX="aux-dev/"
-	export AUX_MASTER_BRANCH="aux-master"
-	export QA_BRANCH="qa"
-	export AUX_QA_PREFIX="aux-qa/"
 	export ORIGIN=$(git config --get remote.origin.url)
 	AUX_VARIABLE=$(awk -F 'git@github.com:|\.git' '{print $2}' <<< "$ORIGIN")
 	# Neither usernames nor repositories can have /
@@ -658,22 +652,36 @@ gitflow_use_current_branch_name() {
 
 gitflow_use_current_branch_name_from_aux() {
 	local current_branch root_branch
+	local all_steps branch_prefixes aux_branch aux_branch_prefix
 
 	current_branch=$(git_current_branch)
+
+	branch_prefixes=()
+	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
+	for step in $all_steps; do
+		aux_branch=$(json_get_key "$step" '."aux-branch"')
+		aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
+
+		if is_true "$aux_branch" && [ "$aux_branch_prefix" ] && [ ! "$aux_branch_prefix" = "null" ]; then
+			branch_prefixes+=("$aux_branch_prefix")
+		fi
+	done
 
 	if startswith "$current_branch" "$HU_PREFIX"; then
 		BRANCH=$current_branch
 		NAME=${BRANCH}
 		return 0
 	else
-		if startswith "$current_branch" "$AUX_DEVELOP_PREFIX" || startswith "$current_branch" "$AUX_QA_PREFIX"; then
-			root_branch=$(cut -d'/' -f2 <<< "$current_branch")
-			if startswith "$root_branch" "$HU_PREFIX"; then
-				BRANCH=$root_branch
-				NAME=${BRANCH}
-				return 0
+		for prefix in "${branch_prefixes[@]}"; do
+			if startswith "$branch_name" "$prefix"; then
+				root_branch=$(awk -F "$prefix" '{print $2}' <<< "$branch_name")
+				if startswith "$root_branch" "$HU_PREFIX"; then
+					BRANCH=$root_branch
+					NAME=${BRANCH}
+					return 0
+				fi
 			fi
-		fi
+		done
 	fi
 
 	warn "The current HEAD is no ${SUBCOMMAND} branch."
@@ -682,24 +690,38 @@ gitflow_use_current_branch_name_from_aux() {
 }
 
 require_feature_name_or_aux() {
-	local branch_name root_branch
+	local branch_name root_branch 
+	local all_steps branch_prefixes aux_branch aux_branch_prefix
 
 	branch_name="$1"
 	[ -n "$1" ] || branch_name="$NAME"
+
+	branch_prefixes=()
+	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
+	for step in $all_steps; do
+		aux_branch=$(json_get_key "$step" '."aux-branch"')
+		aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
+
+		if is_true "$aux_branch" && [ "$aux_branch_prefix" ] && [ ! "$aux_branch_prefix" = "null" ]; then
+			branch_prefixes+=("$aux_branch_prefix")
+		fi
+	done
 
 	if startswith "$branch_name" "$HU_PREFIX"; then
 		BRANCH=$branch_name
 		NAME=${BRANCH}
 		return 0
 	else
-		if startswith "$branch_name" "$AUX_DEVELOP_PREFIX" || startswith "$branch_name" "$AUX_QA_PREFIX"; then
-			root_branch=$(cut -d'/' -f2 <<< "$branch_name")
-			if startswith "$root_branch" "$HU_PREFIX"; then
-				BRANCH=$root_branch
-				NAME=${BRANCH}
-				return 0
+		for prefix in "${branch_prefixes[@]}"; do
+			if startswith "$branch_name" "$prefix"; then
+				root_branch=$(awk -F "$prefix" '{print $2}' <<< "$branch_name")
+				if startswith "$root_branch" "$HU_PREFIX"; then
+					BRANCH=$root_branch
+					NAME=${BRANCH}
+					return 0
+				fi
 			fi
-		fi
+		done
 	fi
 
 	warn "The current HEAD is no ${SUBCOMMAND} branch."
@@ -785,7 +807,7 @@ require_git_repo() {
 }
 
 require_gitflow_initialized() {
-	gitflow_is_initialized || die "Not a gitflow-enabled repo yet. As init is not done yet, please create master, aux-master and develop branches."
+	gitflow_is_initialized || die "Not a gitflow-enabled repo yet. As init is not done yet, please create all base branches."
 }
 
 require_clean_working_tree() {
@@ -920,18 +942,26 @@ require_branches_equal() {
 # 
 # $1 branch - Branch to merge into other branch
 # $2 base - Recipient branch of merge
-# $3 feature - Feature name (defaults to $NAME)
+# $3 step - Step number if merge conflict (defaults to 0)
+# $4 stage - Stage number if merge conflict (defaults to 0)
+# $5 print_arr - Array of prints up to here (defaults to [])
 #
 # Uses flags squash, no_ff
 #
 # Exits with error if merge conflict
 #
 gitflow_merge_branch_to_base() {
-	local branch base feature_name
+	local branch base step_num stage_num print_arr feature_name
 	branch="$1"
 	base="$2"
-	feature_name="$3"
-	[ -n "$3" ] || feature_name="$NAME"
+
+	step_num="$3"
+	[ -n "$3" ] || step_num="0"
+	stage_num="$4"
+	[ -n "$4" ] || stage_num="0"
+	print_arr=("${@:5}")
+
+	feature_name="$NAME"
 
 	require_local_branch "$branch"
 	require_local_branch "$base"
@@ -956,14 +986,21 @@ gitflow_merge_branch_to_base() {
 
 	if [ $? -ne 0 ]; then
 		# Oops.. we have a merge conflict!
-		# Write the given $BASE_BRANCH to a temporary file as we will
+		# Write the given $branch and $base to a temporary file as we will
 		# be needing it later.
 		mkdir -p "$DOT_GIT_DIR/.gitflow"
-		echo "$branch\\$base" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$feature_name"
+		echo "$branch\\$base\\$step_num\\$stage_num\\$CONFIG_SHA_SUM" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$feature_name"
 		echo
-		echo "There were merge conflicts. To resolve the merge conflict manually, use:"
+		echo "Summary of completed actions:"
+		for msg in "${print_arr[@]}"; do
+			echo $msg
+		done
+		echo "###############################################################################"
+		echo
+		echo "There were merge conflicts when merging $branch to $base."
+		echo "To resolve the merge conflict manually, use:"
 		echo "    git mergetool"
-		echo "Or just go to your project with your favorite IDE and it will prompt you to solve the conflicts."
+		echo "Or just go to your project in an IDE and it will prompt you to solve conflicts."
 		echo "Then, commit your merge. You can do this by running"
 		echo "    git commit"
 		echo
@@ -972,7 +1009,6 @@ gitflow_merge_branch_to_base() {
 		echo
 		echo "Alternatively, you can cancel your merge by running"
 		echo "    git merge --abort"
-		echo "Or just run feature finish again, we will cancel it for you"
 		echo
 		exit 1
 	fi
@@ -996,6 +1032,61 @@ gitflow_create_branch() {
 	fi
 
 	git_do checkout -b "$branch" "$base" || die "Could not create branch '$branch' from '$base'."
+}
+
+# Parse configuration file at $CONFIG_FILENAME
+gitflow_parse_config() {
+	if [ -z "$CONFIG_FILENAME" ]; then
+		die "'CONFIG_FILENAME' must be defined!"
+	fi
+	
+	local json_file
+	json_file=$(cat "$CONFIG_FILENAME")
+
+	export BASE_BRANCHES=$(json_get_key "$json_file" '."base-branches"')
+	if [ -z "$BASE_BRANCHES" ] || [ "$BASE_BRANCHES" = "null" ]; then
+		die "'BASE_BRANCHES' is missing in $CONFIG_FILENAME!"
+	fi
+
+	export FEATURE_BASE=$(trim_line_quotes $(json_get_key "$json_file" '."feature-base"'))
+	if [ -z "$FEATURE_BASE" ] || [ "$FEATURE_BASE" = "null" ]; then
+		die "'FEATURE_BASE' is missing in $CONFIG_FILENAME!"
+	fi
+	require_branch_in_base_branches "$FEATURE_BASE"
+
+	export DEFAULT_CONFIG=$(json_get_key "$json_file" '."default-config"')
+	if [ -z "$DEFAULT_CONFIG" ] || [ "$DEFAULT_CONFIG" = "null" ]; then
+		die "'DEFAULT_CONFIG' is missing in $CONFIG_FILENAME!"
+	fi
+
+	export FINISH_STEPS=$(json_get_key "$json_file" '."finish-steps"')
+	if [ -z "$FINISH_STEPS" ] || [ "$FINISH_STEPS" = "null" ]; then
+		die "'FINISH_STEPS' is missing in $CONFIG_FILENAME!"
+	fi
+
+	export CONFIG_SHA_SUM=$(shasum -a 256 "$CONFIG_FILENAME")
+}
+
+# $1 base - Branch to require if in BASE_BRANCHES
+require_branch_in_base_branches() {
+	# Using BASE_BRANCHES from config
+	if [ -z "$BASE_BRANCHES" ]; then
+		die "'BASE_BRANCHES' must be defined!"
+	fi
+
+	local base branch_name all_bases
+	base="$1"
+	[ -n "$1" ] || die "Missing base branch name"
+
+	all_bases=$(jq -c '.[]' <<< "$BASE_BRANCHES")
+	for base_i in $all_bases; do
+		branch_name=$(trim_line_quotes $base_i)
+		if [ "$base" = "$branch_name" ]; then
+			return 0
+		fi
+	done
+
+	die "$base is not one of the defined BASE_BRANCHES"
 }
 
 export ACCEPT_HEADER='Accept:application/vnd.github.v3+json'
@@ -1093,7 +1184,7 @@ github_create_pr() {
 	response=$(github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/pulls" "$req_body")
 
 	# Adding label to PR
-	issue_number=$(json_get_key "$response" ".number")
+	issue_number=$(json_get_key "$response" '."number"')
 
 	if [ -z "$issue_number" ] || [ "$issue_number" = "null" ]; then
 		return 1
@@ -1128,6 +1219,24 @@ github_pr_search_url() {
 	echo "https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pulls?q=$(url_encode $query)"
 }
 
+# $1 string - initial text to display in editor
+# $2 tmp filename - Filename to use
+get_input_editor() {
+	local tmp_file input tmp_filename
+	
+	tmp_filename="$(filename_encode "$2")"
+	[ -n "$2" ] || tmp_filename="input.tmp"
+
+	mkdir -p "$DOT_GIT_DIR/.gitflow"
+	tmp_file="$DOT_GIT_DIR/.gitflow/$tmp_filename"
+	echo "$1" > "$tmp_file"
+	${VISUAL-nano} "$DOT_GIT_DIR/.gitflow/$tmp_filename" > $(tty)
+	input=$(cat "$tmp_file")
+	rm "$tmp_file"
+
+	echo "$input"
+}
+
 # $1 string - String to encode for URL
 url_encode() {
     echo "$1" | sed -e 's/%/%25/g' -e 's/ /%20/g' -e 's/!/%21/g' \
@@ -1143,10 +1252,27 @@ url_encode() {
 	# -e 's/+/%2b/g' 
 }
 
+# $1 string - String to encode for filename
+filename_encode() {
+	echo "$1" | sed -e 's/%//g' -e 's/ /-/g' -e 's/!//g' \
+		-e 's/"//g' -e "s/'//g" -e 's/#//g' -e 's/(//g' \
+		-e 's/)//g' -e 's/:/-/g' -e 's/;/-/g' -e 's/?//g' \
+		-e 's/@/at/g' -e 's/\$//g' -e 's/\&/~/g' -e 's/\*//g' \
+		-e 's/\//~/g' -e 's/\[//g' -e 's/\\/~/g' -e 's/\]//g' \
+		-e 's/`//g' -e 's/{//g' -e 's/|/~/g' -e 's/}//g' \
+		-e 's/=/~/g' -e 's/,//g' -e 's/</~/g' -e 's/>/~/g' -e 's/\./~/g'
+}
+
 # $1 json - JSON String to feed to JQ
 # $2 key - Key to look in JSON string
 json_get_key() {
-	jq "$2" <<< "$1" | tr -d "\""
+	jq "$2" <<< "$1"
+}
+
+# $1 line - String line to trim quotes from
+#			Will not work on multi-lined
+trim_line_quotes() {
+	tr -d "\"" <<< "$1"
 }
 
 # $1 string - String to convert to JSON

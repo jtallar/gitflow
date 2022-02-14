@@ -2,6 +2,7 @@
 
 initialize() {
 	require_git_repo
+	gitflow_parse_config
 	require_gitflow_initialized
 	gitflow_load_settings
 	PREFIX=""
@@ -50,7 +51,7 @@ h,help!     Show this help
 v,verbose   Verbose (more) output
 "
 	local feature_branches current_branch width branch len
-	local base aux_master_sha branch_sha
+	local base feature_base_sha branch_sha
 
 	# Define flags
 	DEFINE_boolean 'verbose' false 'verbose (more) output' v
@@ -79,8 +80,8 @@ v,verbose   Verbose (more) output
 	width=$(($width+3-${#PREFIX}))
 
 	for branch in $feature_branches; do
-		base=$(git merge-base "$branch" "$AUX_MASTER_BRANCH")
-		aux_master_sha=$(git rev-parse "$AUX_MASTER_BRANCH")
+		base=$(git merge-base "$branch" "$FEATURE_BASE")
+		feature_base_sha=$(git rev-parse "$FEATURE_BASE")
 		branch_sha=$(git rev-parse "$branch")
 		if [ "$branch" = "$current_branch" ]; then
 			printf "* "
@@ -89,12 +90,12 @@ v,verbose   Verbose (more) output
 		fi
 		if flag verbose; then
 			printf "%-${width}s" "${branch#$PREFIX}"
-			if [ "$branch_sha" = "$aux_master_sha" ]; then
+			if [ "$branch_sha" = "$feature_base_sha" ]; then
 				printf "(no commits yet)"
 			elif [ "$base" = "$branch_sha" ]; then
-				printf "(is behind aux-master, may ff)"
-			elif [ "$base" = "$aux_master_sha" ]; then
-				printf "(based on latest aux-master)"
+				printf "(is behind $FEATURE_BASE, may ff)"
+			elif [ "$base" = "$feature_base_sha" ]; then
+				printf "(based on latest $FEATURE_BASE)"
 			else
 				printf "(may be rebased)"
 			fi
@@ -143,7 +144,7 @@ cmd_start() {
 	OPTIONS_SPEC="\
 gitflow feature start [-h] [-F] <name> [<base>]
 
-Start new feature <name>, optionally basing it on <base> instead of <$AUX_MASTER_BRANCH>
+Start new feature <name>, optionally basing it on <base> instead of <$FEATURE_BASE>
 By default, --fetch is used
 --
 h,help!          Show this help
@@ -161,7 +162,7 @@ F,[no]fetch      Pull base from origin before performing local operation. F and 
 	# Parse arguments
 	parse_args "$@"
 	eval set -- "${FLAGS_ARGV}"
-	base=${2:-$AUX_MASTER_BRANCH}
+	base=${2:-$FEATURE_BASE}
 
 	require_clean_working_tree
 	require_base_is_local_branch "$base"
@@ -183,8 +184,6 @@ F,[no]fetch      Pull base from origin before performing local operation. F and 
 	if git_remote_branch_exists "origin/$base"; then
 		require_branches_equal "$base" "origin/$base"
 	fi
-
-	# gitflow_config_set_base_branch $base $BRANCH
 
 	# create branch
 	gitflow_create_branch "$BRANCH" "$base"
@@ -220,8 +219,6 @@ keepremote!        	   Always true -- Keep the remote branch
 keeplocal!             Always true -- Keep the local branch
 D,[no]force_delete     Unused -- Force delete feature branch after finish
 "
-	local merge_conflict stage_num finish_branch finish_base aux_dev_branch aux_qa_branch
-	# finish_branch, finish_base will be used with merge conflicts
 
 	# Define flags
 	DEFINE_boolean 'fetch' true "fetch from $ORIGIN before performing finish" F
@@ -233,7 +230,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	DEFINE_boolean 'keeplocal' false "keep the local branch"
 	DEFINE_boolean 'force_delete' false "force delete feature branch after finish" D
 	DEFINE_boolean 'squash' false "squash feature during merge" S
-	DEFINE_boolean 'squash-info' false "add branch info during squash"
 	DEFINE_boolean 'no-ff!' false "Don't fast-forward ever during merge "
 
 	# Override defaults with values from config
@@ -246,7 +242,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	gitflow_override_flag_boolean   "feature.finish.keeplocal"         "keeplocal"
 	gitflow_override_flag_boolean   "feature.finish.force-delete"      "force_delete"
 	gitflow_override_flag_boolean   "feature.finish.squash"            "squash"
-	gitflow_override_flag_boolean   "feature.finish.squash-info"       "squash_info"
 	gitflow_override_flag_boolean   "feature.finish.no-ff"             "no_ff"
 
 	# Parse arguments
@@ -274,47 +269,28 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 		exit 1
 	fi
 
-	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
-	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
-
-	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	BASE_BRANCH="$FEATURE_BASE"
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't finish the feature branch '$BRANCH'."
 
 	# Detect if we're restoring from a merge conflict - include branch name in file
 	if [ -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH" ]; then
+		local merge_conflict finish_branch finish_base finish_step finish_stage finish_config_sha
+
 		if git_is_clean_working_tree; then
 			merge_conflict=$(cat "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH") # "$branch\\$base"
 			finish_branch=$(cut -d'\' -f1 <<< "$merge_conflict")
 			finish_base=$(cut -d'\' -f2 <<< "$merge_conflict")
+			finish_step=$(cut -d'\' -f3 <<< "$merge_conflict")
+			finish_stage=$(cut -d'\' -f4 <<< "$merge_conflict")
+			finish_config_sha=$(cut -d'\' -f5 <<< "$merge_conflict")
 
 			# Since the working tree is now clean, either the user did a
 			# successful merge manually, or the merge was cancelled.
 			# We detect this using git_is_branch_merged_into()
-			if git_is_branch_merged_into "$finish_branch" "$finish_base"; then
+			if [ "$CONFIG_SHA_SUM" = "$finish_config_sha" ] && git_is_branch_merged_into "$finish_branch" "$finish_base"; then
 				rm -f "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$BRANCH"
 				echo "Resuming after merge..."
-				case $merge_conflict in
-				"$BRANCH\\$aux_dev_branch")
-					stage_num=1
-					;;
-				"$DEVELOP_BRANCH\\$aux_dev_branch")
-					stage_num=2
-					;;
-				"$BRANCH\\$aux_qa_branch")
-					stage_num=3
-					;;
-				"$QA_BRANCH\\$aux_qa_branch")
-					stage_num=4
-					;;
-				*)
-					echo "Invalid merge conflict saved: $merge_conflict."
-					echo "Cancelling merge, please try running the command again."
-					exit 1
-					;;
-				esac
-
-				helper_finish_merges "$stage_num"
+				helper_finish_merges "$finish_step" "$finish_stage"
 				exit 0
 			else
 				# If the user cancelled the merge and decided to wait until
@@ -361,11 +337,6 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 		git_do push "$ORIGIN" "$BRANCH:$BRANCH" || die "Could not push branch '$BRANCH' to remote '$ORIGIN'."
 	fi
 
-	# Check that all other branches are up to date
-	require_branches_equal_or_pull "$BASE_BRANCH" "origin/$BASE_BRANCH"
-	require_branches_equal_or_pull "$DEVELOP_BRANCH" "origin/$DEVELOP_BRANCH"
-	require_branches_equal_or_pull "$QA_BRANCH" "origin/$QA_BRANCH"
-
 	# If the user wants to rebase, do that first
 	if flag rebase; then
 		local _rebase_opts=""
@@ -379,49 +350,10 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 			warn "Finish was aborted due to conflicts during rebase."
 			warn "Please finish the rebase manually now."
 			warn "When finished, re-run:"
-			warn "    gitflow feature finish '$NAME' '$BASE_BRANCH'"
+			warn "    gitflow feature finish $NAME"
 			exit 1
 		fi
 	fi
-
-	# Original situation: 
-	# 	- BASE_BRANCH = aux-master
-	#	- Default flags
-	#		* push, keep, keeplocal, keepremote = false
-	# 	- Requires that feature branch, base branch are equal to origin
-	# 	- Checkout to base branch
-	# 	- Merge feature branch into base branch
-	# 		* If merge conflicts, create MERGE_BASE file and exit
-	# 		* After commiting merge conflicts and rerunning command, follows with next step 
-	# 	- Push changes to base branch (if push == true)
-	# 	- If keep == true, it ends here
-	# 	- If keep == false
-	# 		* If keepremote == false, delete remote feature branch
-	# 		* If keeplocal == false, delete local feature branch
-
-	# Desired situation: 
-	# 	- BASE_BRANCH = aux-master
-	#	- Default flags
-	#		* push, keep, keeplocal, keepremote = true --> NOT USED
-	# 	- Requires that feature branch, base branch, qa branch, develop branch are equal to origin
-	# 	- Checkout to aux-dev/$NAME branch from feature branch
-	#		* If branch does not exist, create a new aux-dev branch from feature branch
-	#		* If branch exists, merge feature branch into aux-dev/$NAME branch
-	#		* Merge develop branch into aux-dev/$NAME branch
-	#			$ If merge conflicts, create MERGE_DEVELOP_TO_AUX_DEV file and exit
-	#		* Push changes to aux-dev/$NAME branch
-	#		* If open PR does not exist, create PR from aux-dev/$NAME branch to develop branch
-	#			$ Include label develop
-	# 	- Checkout to aux-qa/$NAME branch from feature branch
-	#		* If branch does not exist, create a new aux-qa branch from feature branch
-	#		* If branch exists, merge feature branch into aux-qa/$NAME branch
-	#		* Merge qa branch into aux-qa/$NAME branch
-	#			$ If merge conflicts, create MERGE_QA_TO_AUX_QA file and exit
-	#		* Push changes to aux-qa/$NAME branch
-	#		* If open PR does not exist, create PR from aux-qa/$NAME branch to qa branch
-	#			$ Include label qa
-	#	- If open PR does not exist, create PR from $NAME branch to aux-master branch
-	#		* Include label aux-master
 
 	helper_finish_merges
 }
@@ -433,110 +365,136 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 #			 Helps when solving conflicts, to resume execution
 #
 helper_finish_merges(){
-	local aux_dev_branch aux_qa_branch keepmsg stage_num print_arr
-	aux_dev_branch="$AUX_DEVELOP_PREFIX$BRANCH"
-	aux_qa_branch="$AUX_QA_PREFIX$BRANCH"
-	stage_num="$1"
-	[ -n "$1" ] || stage_num=0
+	local keepmsg last_pr_body print_arr all_steps
+	local step_num stage_num step_count
 
+	step_num="$1"
+	[ -n "$1" ] || step_num=0
+	stage_num="$2"
+	[ -n "$2" ] || stage_num=0
+	step_count=0
+
+	last_pr_body="Replace this text with your PR body for all new PRs..."
 	print_arr=()
 
-	## STAGE 0
-	if [ $stage_num -le 0 ]; then
-		# Create or merge into aux-dev/$BRANCH
-		if git_local_branch_exists "$aux_dev_branch"; then
-			gitflow_merge_branch_to_base "$BRANCH" "$aux_dev_branch"
-			print_arr+=("- Updated '$aux_dev_branch' with '$BRANCH'")
-		else
-			if git_remote_branch_exists "$aux_dev_branch"; then
-				die "Branch $aux_dev_branch exists in $ORIGIN, but not found locally."
-			else
-				gitflow_create_branch "$aux_dev_branch" "$BRANCH"
-				print_arr+=("- Created '$aux_dev_branch' with '$BRANCH'")
-			fi
+	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
+	for step in $all_steps; do
+		(( step_count += 1 ))
+		if [ $step_count -lt $step_num ]; then
+			continue
 		fi
-	fi
 
-	## STAGE 1
-	if [ $stage_num -le 1 ]; then
-		# Merge develop into aux-dev/$BRANCH
-		gitflow_merge_branch_to_base "$DEVELOP_BRANCH" "$aux_dev_branch"
-		print_arr+=("- Merged '$DEVELOP_BRANCH' into '$aux_dev_branch'")
-	fi
+		local base aux_branch aux_branch_prefix aux_branch_name head with_pr
+		local issue_number return_code pr_body tmp_file
 
-	## STAGE 2
-	if [ $stage_num -le 2 ]; then
-		# Create remote branch with remote tracking
-		git_do push -u "$ORIGIN" "$aux_dev_branch:$aux_dev_branch" || die "Could not push branch '$aux_dev_branch' to remote '$ORIGIN'."
-		git_do fetch -q "origin" "$aux_dev_branch" || die "Could not fetch branch '$aux_dev_branch' from remote '$ORIGIN'."
-		print_arr+=("- Pushed aux branch '$aux_dev_branch' to '$ORIGIN'")
-
-		# Create or merge into aux-qa/$BRANCH
-		if git_local_branch_exists "$aux_qa_branch"; then
-			gitflow_merge_branch_to_base "$BRANCH" "$aux_qa_branch"
-			print_arr+=("- Updated '$aux_qa_branch' with '$BRANCH'")
-		else
-			if git_remote_branch_exists "$aux_qa_branch"; then
-				die "Branch $aux_qa_branch exists in $ORIGIN, but not found locally."
-			else
-				gitflow_create_branch "$aux_qa_branch" "$BRANCH"
-				print_arr+=("- Created '$aux_qa_branch' with '$BRANCH'")
-			fi
+		# Get properties from config
+		base=$(trim_line_quotes $(json_get_key "$step" '."base"'))
+		if [ -z "$base" ] || [ "$base" = "null" ]; then
+			die "Missing aux-branch-prefix property in finish-step $step_count"
 		fi
-	fi
 
-	## STAGE 3
-	if [ $stage_num -le 3 ]; then
-		# Merge qa into aux-qa/$BRANCH
-		gitflow_merge_branch_to_base "$QA_BRANCH" "$aux_qa_branch"
-		print_arr+=("- Merged '$QA_BRANCH' into '$aux_qa_branch'")
-	fi
+		aux_branch=$(json_get_key "$step" '."aux-branch"')
+		if [ -z "$aux_branch" ] || [ "$aux_branch" = "null" ]; then
+			die "Missing aux-branch-prefix property in finish-step $step_count"
+		fi
 
-	## STAGE 4
+		with_pr=$(json_get_key "$step" '."with-pr"')
+		if [ -z "$with_pr" ] || [ "$with_pr" = "null" ]; then
+			die "Missing aux-branch-prefix property in finish-step $step_count"
+		fi
 
-	# Create remote branch with remote tracking
-	git_do push -u "$ORIGIN" "$aux_qa_branch:$aux_qa_branch" || die "Could not push branch '$aux_qa_branch' to remote '$ORIGIN'."
-	git_do fetch -q "origin" "$aux_qa_branch" || die "Could not fetch branch '$aux_qa_branch' from remote '$ORIGIN'."
-	print_arr+=("- Pushed aux branch '$aux_qa_branch' to '$ORIGIN'")
+		print_arr+=("---------------- $base ----------------")
 
-	local issue_number return_code tmp_file pr_body
+		# Check that base is in BASE_BRANCHES
+		require_branch_in_base_branches "$base"
+		print_arr+=("- Pulled branch '$base' from '$ORIGIN'")
 
-	# Open editor to write PR body
-	mkdir -p "$DOT_GIT_DIR/.gitflow"
-	tmp_file="$DOT_GIT_DIR/.gitflow/pr_body.tmp"
-	echo "Replace this text with your PR body for all new PRs..." > "$tmp_file"
-	nano "$DOT_GIT_DIR/.gitflow/pr_body.tmp"
-	pr_body=$(cat $tmp_file)
-	rm "$tmp_file"
+		# Check that base is up to date
+		require_branches_equal_or_pull "$base" "origin/$base"
 
-	print_arr+=("----------- PR -----------")
-	# Create PR from $BRANCH branch to aux-master branch if not open (label: aux-master)
-	issue_number=$(github_create_pr "$BRANCH" "$AUX_MASTER_BRANCH" "$pr_body")
-	return_code="$?"
-	if [ "$return_code" -eq 0 ]; then
-		print_arr+=("- Created PR from $BRANCH to $AUX_MASTER_BRANCH: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
-	else
-		print_arr+=("- PR already open from $BRANCH to $AUX_MASTER_BRANCH: $(github_pr_search_url $BRANCH $AUX_MASTER_BRANCH)")
-	fi
+		# Check if an aux-branch is wanted
+		if is_true "$aux_branch"; then 
+			# Get aux-branch-prefix property
+			aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
 
-	# Create PR from $aux_dev_branch branch to develop branch if not open (label: develop)
-	issue_number=$(github_create_pr "$aux_dev_branch" "$DEVELOP_BRANCH" "$pr_body")
-	return_code="$?"
-	if [ "$return_code" -eq 0 ]; then
-		print_arr+=("- Created PR from $aux_dev_branch to $DEVELOP_BRANCH: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
-	else
-		print_arr+=("- PR already open from $aux_dev_branch to $DEVELOP_BRANCH: $(github_pr_search_url $aux_dev_branch $DEVELOP_BRANCH)")
-	fi
+			# Check that aux-branch-prefix is valid
+			if [ -z "$aux_branch_prefix" ] || [ "$aux_branch_prefix" = "null" ]; then
+				die "Missing aux-branch-prefix property in finish-step $step_count"
+			fi
+			aux_branch_name="$aux_branch_prefix$BRANCH"
 
-	# Create PR from $aux_qa_branch branch to qa branch if not open (label: qa)
-	issue_number=$(github_create_pr "$aux_qa_branch" "$QA_BRANCH" "$pr_body")
-	return_code="$?"
-	if [ "$return_code" -eq 0 ]; then
-		print_arr+=("- Created PR from $aux_qa_branch to $QA_BRANCH: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
-	else
-		print_arr+=("- PR already open from $aux_qa_branch to $QA_BRANCH: $(github_pr_search_url $aux_qa_branch $QA_BRANCH)")
-	fi
-	print_arr+=("--------------------------")
+			head="$aux_branch_name"
+
+			# STAGE 0
+			if [ $stage_num -le 0 ]; then
+				# Create or merge into $aux_branch_prefix/$BRANCH
+				if git_local_branch_exists "$aux_branch_name"; then
+					gitflow_merge_branch_to_base "$BRANCH" "$aux_branch_name" "$step_count" "1" "${print_arr[@]}"
+					print_arr+=("- Updated '$aux_branch_name' with '$BRANCH'")
+				else
+					if git_remote_branch_exists "$aux_branch_name"; then
+						die "Branch $aux_branch_name exists in $ORIGIN, but not found locally."
+					else
+						gitflow_create_branch "$aux_branch_name" "$BRANCH"
+						print_arr+=("- Created '$aux_branch_name' with '$BRANCH'")
+					fi
+				fi
+			fi
+		else
+			head="$BRANCH"
+		fi
+
+		# STAGE 1
+		if [ $stage_num -le 1 ]; then
+			# Merge $base into $head
+			gitflow_merge_branch_to_base "$base" "$head" "$step_count" "2" "${print_arr[@]}"
+			print_arr+=("- Merged '$base' into '$head'")
+		fi
+
+		# STAGE 2
+		if [ $stage_num -le 2 ]; then
+			# Create remote branch with remote tracking for $head
+			git_do push -u "$ORIGIN" "$head:$head" || die "Could not push branch '$head' to remote '$ORIGIN'."
+			git_do fetch -q "origin" "$head" || die "Could not fetch branch '$head' from remote '$ORIGIN'."
+			print_arr+=("- Pushed branch '$head' to '$ORIGIN'")
+		fi
+
+		# Check if PR is wanted
+		if is_true "$with_pr"; then 
+			# Open editor to write PR body
+			pr_body="$last_pr_body"
+			pr_body=$(get_input_editor "$pr_body" "from_${head}_to_${base}")
+			last_pr_body="$pr_body"
+
+			# Create PR from $head branch to $base branch if not open (label: $base)
+			issue_number=$(github_create_pr "$head" "$base" "$pr_body")
+			return_code="$?"
+			if [ "$return_code" -eq 0 ]; then
+				print_arr+=("- Created PR from $head to $base: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
+			else
+				print_arr+=("- PR already open from $head to $base: $(github_pr_search_url $head $base)")
+			fi
+		else
+			# STAGE 2
+			if [ $stage_num -le 2 ]; then
+				# Merge $head into $base
+				gitflow_merge_branch_to_base "$head" "$base" "$step_count" "3" "${print_arr[@]}"
+				print_arr+=("- Merged '$head' into '$base'")
+			fi
+
+			# STAGE 3
+			# Update remote $base branch
+			git_do push -u "$ORIGIN" "$base:$base" || die "Could not push branch '$base' to remote '$ORIGIN'."
+			git_do fetch -q "origin" "$base" || die "Could not fetch branch '$base' from remote '$ORIGIN'."
+			print_arr+=("- Pushed branch '$base' to '$ORIGIN'")
+		fi
+
+		# If we got till the end, we might have gone through incomplete steps.
+		# Next steps should be done entirely
+		stage_num=0
+		print_arr+=("")
+	done
+	print_arr+=("--------------------------------------------")
 
 	# Checkout back to feature branch
 	git_do checkout "$BRANCH" || die "Could not check out branch '$BRANCH'."
@@ -544,7 +502,6 @@ helper_finish_merges(){
 	echo
 	echo "Summary of actions:"
 	echo "- Pushed feature branch '$BRANCH' to '$ORIGIN'"
-	echo "- Pulled branches '$BASE_BRANCH', '$DEVELOP_BRANCH', '$QA_BRANCH' from '$ORIGIN'"
 	for msg in "${print_arr[@]}"
 	do
 		echo $msg
@@ -647,8 +604,7 @@ showcommands!    Show git commands while executing them
 	fi
 	require_local_branch "$BRANCH"
 
-	# base=$(gitflow_config_get_base_branch $BRANCH)
-	base=${base:-$AUX_MASTER_BRANCH}
+	base=${base:-$FEATURE_BASE}
 
 	git_do diff "$base...$BRANCH"
 }
@@ -710,8 +666,7 @@ p,[no]preserve-merges  Preserve merges
 	fi
 	require_feature_name
 
-	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	BASE_BRANCH="$FEATURE_BASE"
 
 	warn "Will try to rebase '$NAME' which is based on '$BASE_BRANCH'..."
 	if ! git_config_bool_exists "rebase.autostash"; then
@@ -721,6 +676,8 @@ p,[no]preserve-merges  Preserve merges
 	require_branch "$BRANCH"
 
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't rebase the feature branch '$BRANCH'."
+	# Update BASE_BRANCH from origin
+	require_branches_equal_or_pull "$BASE_BRANCH" "origin/$BASE_BRANCH"
 
 	git_do checkout -q "$BRANCH" || die "Could not check out branch '$BRANCH'."
 	if flag interactive; then
@@ -781,14 +738,14 @@ cmd_delete() {
 	OPTIONS_SPEC="\
 gitflow feature delete [-h] [-f] [-r] <name>
 
-Delete a given feature branch
+Delete a given feature branch with auxiliary branches based on config
 --
 h,help!          Show this help
 showcommands!    Show git commands while executing them
 f,[no]force      Force deletion
 r,[no]remote     Delete remote branch. This will also close open PRs without merging them
 "
-	local current_branch aux_dev_branch aux_qa_branch branch_arr print_arr
+	local current_branch branch_arr print_arr
 
 	# Define flags
 	DEFINE_boolean 'force' false "force deletion" f
@@ -810,15 +767,27 @@ r,[no]remote     Delete remote branch. This will also close open PRs without mer
 	# Update references from remote
 	git_do fetch -q "origin" || die "Could not fetch from remote '$ORIGIN'."
 
-	# BASE_BRANCH=$(gitflow_config_get_base_branch $BRANCH)
-	BASE_BRANCH=${BASE_BRANCH:-$AUX_MASTER_BRANCH}
+	BASE_BRANCH="$FEATURE_BASE"
 	git_local_branch_exists "$BASE_BRANCH" || die "The base '$BASE_BRANCH' doesn't exists locally or is not a branch. Can't delete the feature branch '$BRANCH'."
 
 	current_branch=$(git_current_branch)
 	print_arr=()
 
-	branch_arr=("$BRANCH" "$AUX_DEVELOP_PREFIX$BRANCH" "$AUX_QA_PREFIX$BRANCH")
-	bases_arr=("$AUX_MASTER_BRANCH" "$DEVELOP_BRANCH" "$QA_BRANCH")
+	branch_arr=("$BRANCH")
+	bases_arr=("$FEATURE_BASE")
+
+	local base aux_branch aux_branch_prefix all_steps
+	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
+	for step in $all_steps; do
+		base=$(trim_line_quotes $(json_get_key "$step" '."base"'))
+		aux_branch=$(json_get_key "$step" '."aux-branch"')
+		aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
+
+		if is_true "$aux_branch" && [ "$aux_branch_prefix" ] && [ ! "$aux_branch_prefix" = "null" ]; then
+			branch_arr+=("$aux_branch_prefix$BRANCH")
+			bases_arr+=("$base")
+		fi
+	done
 
 	for i in "${!branch_arr[@]}"; do
 		if [ "${branch_arr[$i]}" = "$current_branch" ]; then

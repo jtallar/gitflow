@@ -27,6 +27,13 @@ You can check if you have everything required to run this program by running
     `/bin/bash check-requirements`
 The script will only check bash version, redirection to `/dev/null` and `jq` installation. Every other commands is assumed to exist (they come installed in MacOS)
 
+#### MacOS
+To fulfill the above requirements:
+1. Install developer tools
+    `xcode-select --install`
+2. Install jq
+    `brew install jq`
+
 ## Setup
 To setup `gitflow`, you must do the following:
 - Create a `.env` file as explained in the file `.env-example`

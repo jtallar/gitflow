@@ -59,6 +59,11 @@ main() {
 	. "$CURRENT_DIR/check-requirements" >/dev/null
 
 	# Use the shFlags project to parse the command line arguments
+	FLAGS_GETOPT_CMD="" # TODO: set to getopts with an s or do sth here
+	# https://stackoverflow.com/questions/402377/using-getopts-to-process-long-and-short-command-line-options
+	# https://github.com/petervanderdoes/gitflow-avh/issues/44
+	# https://stackoverflow.com/questions/2721946/cross-platform-getopt-for-a-shell-script
+	# https://github.com/macports/getopt
 	. "$CURRENT_DIR/shFlags"
 	FLAGS_PARENT="./feature"
 

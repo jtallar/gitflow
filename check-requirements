@@ -49,7 +49,7 @@ check_requirements() {
     if [ $? -ne 4 ]; then
         echo "Please install GNU enhanced getopt."
         exit 1
-    else
+    fi
 
     # gnu_req_array=()
     # gnu_req_array+=("grep") # GNU Grep, will use it to test others...

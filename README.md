@@ -13,6 +13,7 @@ Here is the list of requirements needed:
     - Here is an [article](https://itnext.io/upgrading-bash-on-macos-7138bd1066ba) on how to update Bash in MacOS. Skip the `Set Default Shell` section, that won't be needed.
 - Allow redirection to `/dev/null`.
     - Sometimes this fails with permission denied in MacOS. If so, follow what's stated [here](https://unix.stackexchange.com/questions/146633/bash-dev-null-permission-denied).
+- Have GNU enhanced getopt installed
 - Have the following commands installed and available:
     - `export`, `echo`, `eval`, `unset`, `exit`, `cd`, `pwd` (assumed exist)
     - `cat`, `rm`, `mkdir`, `tty`, `shasum`
@@ -33,6 +34,12 @@ To fulfill the above requirements:
     `xcode-select --install`
 2. Install jq
     `brew install jq`
+3. Install gnu-getopt
+    `brew install gnu-getopt`
+
+#### Windows
+Not supported yet, you can try if it works.
+- From stackoverflow --> install GNU getopt with Cygwin
 
 ## Setup
 To setup `gitflow`, you must do the following:

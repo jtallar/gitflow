@@ -44,6 +44,13 @@ check_requirements() {
         exit 1
     fi
 
+    # Check if GNU enhanced getopt is available
+    getopt -T > /dev/null
+    if [ $? -ne 4 ]; then
+        echo "Please install GNU enhanced getopt."
+        exit 1
+    else
+
     # gnu_req_array=()
     # gnu_req_array+=("grep") # GNU Grep, will use it to test others...
     # gnu_req_array+=("cat" "rm" "mkdir") # GNU tools for files

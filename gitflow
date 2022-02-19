@@ -25,6 +25,7 @@ Darwin) # MacOS
 		fi
 	done
 	export CURRENT_DIR=$(dirname "$PRG")
+	export FLAGS_GETOPT_CMD="$(brew --prefix gnu-getopt)/bin/getopt"
 	;;
 *MINGW*)
 	export CURRENT_DIR=$(dirname "$(echo "$0" | sed -e 's,\\,/,g')")
@@ -53,7 +54,7 @@ main() {
 	fi
 
 	# Load environment variables
-	. "$CURRENT_DIR/.env"
+	. "$CURRENT_DIR/.env" 2>/dev/null
 
 	# Check that all system requirements are OK
 	. "$CURRENT_DIR/check-requirements" >/dev/null

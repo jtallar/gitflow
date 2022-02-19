@@ -1,11 +1,10 @@
 # Gitflow
 
 ## Requirements
-**NOTE for MacOS**: I believe the scripts have to be ran with `/usr/local/bin/bash` instead of `/bin/bash` (which would default to the old Bash). Maybe by installing it properly, you can just run it with `bash` with no path.
 
 ### Repo Requirements
 - Run in an existing GIT repository
-- Use SSH to clone your repo (altough you should be, HTTPs is no longer supported in GitHub).
+- Use SSH to clone your repo (altough you should be, HTTPs is no longer supported in GitHub). (TODO: IS THIS ACTUALLY A REQUIREMENT?)
 
 ### System Requirements
 Here is the list of requirements needed:
@@ -13,9 +12,10 @@ Here is the list of requirements needed:
     - Here is an [article](https://itnext.io/upgrading-bash-on-macos-7138bd1066ba) on how to update Bash in MacOS. Skip the `Set Default Shell` section, that won't be needed.
 - Allow redirection to `/dev/null`.
     - Sometimes this fails with permission denied in MacOS. If so, follow what's stated [here](https://unix.stackexchange.com/questions/146633/bash-dev-null-permission-denied).
+- Have GNU enhanced getopt installed
 - Have the following commands installed and available:
-    - `export`, `echo`, `eval`, `unset`, `exit`, `cd`, `pwd` (assumed exist)
-    - `cat`, `rm`, `mkdir`, `tty`, `shasum`
+    - `export`, `echo`, `eval`, `unset`, `exit`, `cd`, `pwd`, `which` (assumed exist)
+    - `cat`, `rm`, `mkdir`, `tty`, `shasum`, `head`, `tee`
     - `uname`, `dirname`, `realpath`, `readlink`
     - `sed`, `cut`, `grep`, `tr`, `wc`, `awk`
     - `nano`
@@ -24,15 +24,24 @@ Here is the list of requirements needed:
     - `jq` (>= 1.6)
 
 You can check if you have everything required to run this program by running 
-    `/bin/bash check-requirements`
-The script will only check bash version, redirection to `/dev/null` and `jq` installation. Every other commands is assumed to exist (they come installed in MacOS)
+    `./check-requirements`
+The script will only check bash version, redirection to `/dev/null`, GNU enhanced getopt installation and `jq` installation. Every other commands is assumed to exist (they come installed in MacOS).
+
+**MacOS**
+
+To fulfill most of the above requirements in MacOS, you can run the installation script
+    `./install`
+
+**Windows**
+
+Not supported yet, you can try if it works. Some suggestions regarding the requirements:
+- From stackoverflow --> install GNU getopt with Cygwin
 
 ## Setup
 To setup `gitflow`, you must do the following:
 - Create a `.env` file as explained in the file `.env-example`
 - Go to your terminal configuration file (eg: .bashrc, .zshrc) and add an alias pointing to the gitflow script
     - `alias gitflow="/full/path/to/gitflow`
-    - Or if MacOS: `alias gitflow="/bin/bash /full/path/to/gitflow`
 
 ## Configuration
 You can customize `gitflow` to adjust to your project's branching model. To do so, you must edit the file `config.json`. The configurations available are the following:

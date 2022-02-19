@@ -53,7 +53,7 @@ main() {
 	fi
 
 	# Load environment variables
-	. "$CURRENT_DIR/.env"
+	. "$CURRENT_DIR/.env" 2>/dev/null
 
 	# Check that all system requirements are OK
 	. "$CURRENT_DIR/check-requirements" >/dev/null

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# Script used to install every required programme for using Gitflow
+
+# Install requirements for kernel-name = Darwin (MacOS)
+install_req_darwin() {
+    # Test redirect to /dev/null
+    echo "Nothing" >/dev/null; status_code="$?"
+    if [ $status_code -ne 0 ]; then
+        echo "Cannot access /dev/null. Please fix permissions issue by following"
+        echo "https://unix.stackexchange.com/questions/146633/bash-dev-null-permission-denied"
+        echo "Then, re-run this script."
+        exit 1
+    fi
+
+    # Check that homebrew is installed
+    which brew >/dev/null; status_code="$?"
+    if [ $status_code -ne 0 ]; then
+        echo "Homebrew is not installed. Please install it and re-run this script."
+        exit 1
+    fi
+
+    # Check that developer tools have been installed
+    xcode-select -p >/dev/null; status_code="$?"
+    if [ $status_code -ne 0 ]; then
+        echo "Installing developer tools..."
+        xcode-select --install
+        echo "Please re-run this script once installation has finished."
+        exit 1
+    fi
+
+    # Upgrade bash
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+        local bash_path
+        echo "Installing bash with Brew..."
+        brew install bash
+        bash_path=$(which -a bash | head -n 1)
+        echo "Adding installed bash to /etc/shells"
+        echo "$bash_path" | sudo tee -a /etc/shells >/dev/null
+    fi
+
+    # Install jq
+    jq --version | grep '\(jq-1\.\([6-9]\|[1-9][0-9]\)\)\|\(jq-[2-9]\..\)' >/dev/null; status_code="$?"
+    if [ $status_code -ne 0 ]; then
+        echo "Installing jq..."
+        brew install jq
+    fi
+
+    # Install GNU enhanced getopt
+    getopt -T > /dev/null
+    if [ $? -ne 4 ]; then
+        echo "Installing gnu-getopt..."
+        brew install gnu-getopt
+    fi
+
+    # Add execution permission for all scripts
+    echo "Adding execution permissions for gitflow script..."
+    chmod +x "check-requirements" "gitflow"
+}
+
+install_requirements() {    
+    # Setup the CURRENT_DIR for different operating systems.
+    case $(uname -s) in
+    Darwin) # MacOS
+        install_req_darwin
+        ;;
+    *)
+        echo "The installation script does not support your SO."
+        echo "Please install the requirements manually."
+        exit 1
+        ;;
+    esac
+
+    echo
+    echo "All required commands/programs have been installed!"
+    return 0
+}
+install_requirements "$@"

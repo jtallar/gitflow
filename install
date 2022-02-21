@@ -4,6 +4,7 @@
 
 # Install requirements for kernel-name = Darwin (MacOS)
 install_req_darwin() {
+    local status_code
     # Test redirect to /dev/null
     echo "Nothing" >/dev/null; status_code="$?"
     if [ $status_code -ne 0 ]; then
@@ -32,6 +33,12 @@ install_req_darwin() {
     # Upgrade bash
     if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
         local bash_path
+        brew list --verbose bash >/dev/null 2>/dev/null; status_code="$?"
+        if [ $status_code -eq 0 ]; then
+            echo "Bash has already been installed with brew."
+            echo "Please use that bash to run all scripts, including this one."
+            exit 1
+        fi
         echo "Installing bash with Brew..."
         brew install bash
         bash_path=$(which -a bash | head -n 1)
@@ -47,8 +54,8 @@ install_req_darwin() {
     fi
 
     # Install GNU enhanced getopt
-    getopt -T > /dev/null
-    if [ $? -ne 4 ]; then
+    "$(brew --prefix gnu-getopt)/bin/getopt" -T > /dev/null; status_code="$?"
+    if [ $status_code -ne 4 ]; then
         echo "Installing gnu-getopt..."
         brew install gnu-getopt
     fi

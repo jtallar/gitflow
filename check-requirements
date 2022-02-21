@@ -4,6 +4,20 @@
 # If any of these fail, exits with 1.
 # If everything is ok, exits with 0
 
+get_getopt_cmd() {
+    case $(uname -s) in
+    FreeBSD|OpenBSD|NetBSD)
+        echo "/usr/local/bin/getopt"
+        ;;
+    Darwin) # MacOS
+        echo "$(brew --prefix gnu-getopt)/bin/getopt"
+        ;;
+    *)
+        echo "getopt"
+        ;;
+    esac
+}
+
 #
 # $1 status code - Return code to evaluate
 # $2 cmd - Command name tested
@@ -45,8 +59,8 @@ check_requirements() {
     fi
 
     # Check if GNU enhanced getopt is available
-    getopt -T > /dev/null
-    if [ $? -ne 4 ]; then
+    $(get_getopt_cmd) -T >/dev/null; status_code="$?"
+    if [ $status_code -ne 4 ]; then
         echo "Please install GNU enhanced getopt."
         exit 1
     fi

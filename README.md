@@ -29,8 +29,13 @@ The script will only check bash version, redirection to `/dev/null`, GNU enhance
 
 **MacOS**
 
-To fulfill most of the above requirements in MacOS, you can run the installation script
-    `./install`
+To fulfill most of the above requirements in MacOS, you can run the installation script `install`.
+1. `chmod +x install`
+2. `./install`
+    - You may need to re-run it until you get a message `All required commands/programs have been installed`.
+3. `./check-requirements`
+    - You should get a message `All required commands/programs are installed!`.
+4. Complete the [Setup](#setup)
 
 **Windows**
 

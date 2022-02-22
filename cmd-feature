@@ -374,7 +374,7 @@ helper_finish_merges(){
 	[ -n "$2" ] || stage_num=0
 	step_count=0
 
-	last_pr_body="Replace this text with your PR body for all new PRs..."
+	last_pr_body="JIRA: $(get_jira_url $BRANCH)"
 	print_arr=()
 
 	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
@@ -463,7 +463,7 @@ helper_finish_merges(){
 		if is_true "$with_pr"; then 
 			# Open editor to write PR body
 			pr_body="$last_pr_body"
-			pr_body=$(get_input_editor "$pr_body" "from_${head}_to_${base}")
+			pr_body=$(get_input_editor "$pr_body" "pr_from_${head}_to_${base}")
 			last_pr_body="$pr_body"
 
 			# Create PR from $head branch to $base branch if not open (label: $base)

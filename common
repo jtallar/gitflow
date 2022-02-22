@@ -1089,6 +1089,19 @@ require_branch_in_base_branches() {
 	die "$base is not one of the defined BASE_BRANCHES"
 }
 
+#
+# Show commands if flag is set.
+#
+git_do() {
+	if flag showcommands; then
+		echo "git $@" >&2
+	fi
+
+	git $(trim_whitespace "$*")
+}
+
+############################################################
+
 export ACCEPT_HEADER='Accept:application/vnd.github.v3+json'
 export AUTHORIZATION_HEADER='Authorization:token '"$GITHUB_PAT"''
 export GITHUB_API_BASE_URL='https://api.github.com'
@@ -1219,6 +1232,8 @@ github_pr_search_url() {
 	echo "https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pulls?q=$(url_encode $query)"
 }
 
+############################################################
+
 # $1 string - initial text to display in editor
 # $2 tmp filename - Filename to use
 get_input_editor() {
@@ -1283,17 +1298,6 @@ string_to_json() {
 }
 
 #
-# Show commands if flag is set.
-#
-git_do() {
-	if flag showcommands; then
-		echo "git $@" >&2
-	fi
-
-	git $(trim_whitespace "$*")
-}
-
-#
 # Trim whitespace from text
 #
 # $1 text - Text to trim whitespace from
@@ -1304,6 +1308,49 @@ git_do() {
 #
 trim_whitespace() {
 	echo "$(echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr -s '[[:space:]]')"
+}
+
+#
+# Get JIRA URL from branch name
+#
+# $1 branch name - Text to trim whitespace from
+#
+# Returns JIRA URL.
+#
+get_jira_url() {
+	local branch_name root_branch jira_code
+	local all_steps branch_prefixes aux_branch aux_branch_prefix
+
+	branch_name="$1"
+	[ -n "$1" ] || branch_name="$NAME"
+
+	branch_prefixes=()
+	all_steps=$(jq -c '.[]' <<< "$FINISH_STEPS")
+	for step in $all_steps; do
+		aux_branch=$(json_get_key "$step" '."aux-branch"')
+		aux_branch_prefix=$(trim_line_quotes $(json_get_key "$step" '."aux-branch-prefix"'))
+
+		if is_true "$aux_branch" && [ "$aux_branch_prefix" ] && [ ! "$aux_branch_prefix" = "null" ]; then
+			branch_prefixes+=("$aux_branch_prefix")
+		fi
+	done
+
+	if ! startswith "$branch_name" "$HU_PREFIX"; then
+		for prefix in "${branch_prefixes[@]}"; do
+			if startswith "$branch_name" "$prefix"; then
+				root_branch=$(awk -F "$prefix" '{print $2}' <<< "$branch_name")
+				if startswith "$root_branch" "$HU_PREFIX"; then
+					branch_name="$root_branch"
+					break
+				fi
+			fi
+		done
+	fi
+
+	[ -n "$branch_name" ] || die "Branch is not a feature branch nor an auxiliary branch"
+
+	jira_code=$(grep -o "^$HU_PREFIX-[0-9]*" <<< "$branch_name")
+	echo "https://humand.atlassian.net/browse/$jira_code"
 }
 
 #

@@ -30,6 +30,11 @@
     },
     "finish-steps": [
         {
+            "base": "aux-master",
+            "aux-branch": false,
+            "with-pr": true
+        },
+        {
             "base": "develop",
             "aux-branch": true,
             "aux-branch-prefix": "aux-dev/",
@@ -39,11 +44,6 @@
             "base": "qa",
             "aux-branch": true,
             "aux-branch-prefix": "aux-qa/",
-            "with-pr": true
-        },
-        {
-            "base": "aux-master",
-            "aux-branch": false,
             "with-pr": true
         }
     ]

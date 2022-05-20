@@ -1,10 +1,11 @@
 # Gitflow
+Utility used to automate your Git operations by implementing a custom branching model. Based on Peter van der Does' [gitflow-avh repo](https://github.com/petervanderdoes/gitflow-avh).
 
 ## Requirements
 
 ### Repo Requirements
 - Run in an existing GIT repository
-- Use SSH to clone your repo (altough you should be, HTTPs is no longer supported in GitHub). (TODO: IS THIS ACTUALLY A REQUIREMENT?)
+- Use SSH to clone your repo (altough you should be, HTTPs is no longer supported in GitHub).
 
 ### System Requirements
 Here is the list of requirements needed:
@@ -41,6 +42,9 @@ To fulfill most of the above requirements in MacOS, you can run the installation
 
 Not supported yet, you can try if it works. Some suggestions regarding the requirements:
 - From stackoverflow --> install GNU getopt with Cygwin
+
+## License terms
+gitflow is published under the FreeBSD License, see the LICENSE file. Although the FreeBSD License does not require you to share any modifications you make to the source code, you are encouraged and invited to contribute back your modifications to the community, preferably in a Github fork.
 
 ## Setup
 To setup `gitflow`, you must do the following:

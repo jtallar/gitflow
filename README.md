@@ -14,7 +14,7 @@ Here is the list of requirements needed:
     - Sometimes this fails with permission denied in MacOS. If so, follow what's stated [here](https://unix.stackexchange.com/questions/146633/bash-dev-null-permission-denied).
 - Have GNU enhanced getopt installed
 - Have the following commands installed and available:
-    - `export`, `echo`, `eval`, `unset`, `exit`, `cd`, `pwd`, `which` (assumed exist)
+    - `export`, `echo`, `eval`, `unset`, `exit`, `cd`, `pwd`, `which`
     - `cat`, `rm`, `mkdir`, `tty`, `shasum`, `head`, `tee`
     - `uname`, `dirname`, `realpath`, `readlink`
     - `sed`, `cut`, `grep`, `tr`, `wc`, `awk`

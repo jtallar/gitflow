@@ -1169,9 +1169,10 @@ github_list_all_pr() {
 #
 # Create a new Pull Request at GitHub Repository
 #
-# $1 head - Head branch to merge from
-# $2 base - Base branch to merge to
-# $3 body - Body of the PR (optional)
+# $1 head 	- Head branch to merge from
+# $2 base 	- Base branch to merge to
+# $3 labels - Labels for the PR (optional)
+# $4 body 	- Body of the PR (optional)
 #
 # Title will be set to head
 #
@@ -1183,13 +1184,15 @@ github_create_pr() {
 
 	head="$1"
 	base="$2"
-	body="$3"
+	labels="$3"
+	body="$4"
 	
 	[ -n "$1" ] || die "Missing head"
 	[ -n "$2" ] || die "Missing base"
-	[ -n "$3" ] || body=""
+	[ -n "$3" ] || labels="[]"
+	[ -n "$4" ] || body=""
 
-	body=$(string_to_json "$3") # Already includes starting and ending " "
+	body=$(string_to_json "$4") # Already includes starting and ending " "
 
 	req_body="{\"title\":\"$head\",\"base\":\"$base\", \"head\":\"$GIT_USERNAME:$head\", \"body\":$body}"
 	response=$(github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/pulls" "$req_body")
@@ -1201,9 +1204,40 @@ github_create_pr() {
 		return 1
 	fi
 
-	github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/issues/$issue_number/labels" "{\"labels\":[\"$base\"]}" >/dev/null 2>&1
+	# Add labels to PR
+	label_body=$(get_labels_body "$labels")
+	github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/issues/$issue_number/labels" "$label_body" >/dev/null 2>&1
 
 	echo "$issue_number"
+}
+
+#
+# Generate label body for Github PR
+#
+# $1 labels - Array parsed from JSON
+#
+# Returns body to use in a label's POST request.
+# If labels is not an array, default to []
+#
+get_labels_body() {
+	local labels label_text label_count
+
+	labels="$1"
+	[ -n "$1" ] || labels="[]"
+
+	label_text=""
+	label_count=0
+	all_labels=$(jq -c '.[]' <<< "$labels" 2>/dev/null)
+	for label in $all_labels; do
+		label_text="$label_text$label,"
+		(( label_count += 1 ))
+	done
+
+	if [ $label_count -gt 0 ]; then
+		label_text="${label_text::-1}"
+	fi
+
+	echo "{\"labels\":[$label_text]}"
 }
 
 #

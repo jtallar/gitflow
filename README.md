@@ -62,6 +62,7 @@ You can customize `gitflow` to adjust to your project's branching model. To do s
     - `aux-branch`: boolean that states whether merging should be done from an auxiliar branch
     - `aux-branch-prefix`: prefix to use for the auxiliar branch. Only required if `aux-branch` is true
     - `with-pr`: boolean that states if a PR should be created or if merging should be done during execution
+    - `labels`: array of strings with the labels to apply to the PR. Defaults to [].
 
 ## Execution
 Run gitflow with

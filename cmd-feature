@@ -504,14 +504,21 @@ helper_finish_merges(){
 		fi
 
 		# Check if PR is wanted
-		if is_true "$with_pr"; then 
+		if is_true "$with_pr"; then
+			
+			# Read labels if provided
+			labels=$(json_get_key "$step" '."labels"')
+			if [ -z "$labels" ] || [ "$labels" = "null" ]; then
+				labels="[]"
+			fi
+			
 			# Open editor to write PR body
 			pr_body="$last_pr_body"
 			pr_body=$(get_input_editor "$pr_body" "pr_from_${head}_to_${base}")
 			last_pr_body="$pr_body"
 
 			# Create PR from $head branch to $base branch if not open (label: $base)
-			issue_number=$(github_create_pr "$head" "$base" "$pr_body")
+			issue_number=$(github_create_pr "$head" "$base" "$labels" "$pr_body")
 			return_code="$?"
 			if [ "$return_code" -eq 0 ]; then
 				print_arr+=("- Created PR from $head to $base: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")

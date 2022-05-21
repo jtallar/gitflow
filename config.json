@@ -32,19 +32,22 @@
         {
             "base": "aux-master",
             "aux-branch": false,
-            "with-pr": true
+            "with-pr": true,
+            "labels": ["aux-master", "develop-merged"]
         },
         {
             "base": "develop",
             "aux-branch": true,
             "aux-branch-prefix": "aux-dev/",
-            "with-pr": true
+            "with-pr": true,
+            "labels": ["develop"]
         },
         {
             "base": "qa",
             "aux-branch": true,
             "aux-branch-prefix": "aux-qa/",
-            "with-pr": true
+            "with-pr": true,
+            "labels": ["qa", "develop-merged"]
         }
     ]
 }

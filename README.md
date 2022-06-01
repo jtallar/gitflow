@@ -4,8 +4,9 @@ Utility used to automate your Git operations by implementing a custom branching 
 ## Requirements
 
 ### Repo Requirements
-- Run in an existing GIT repository
-- Use SSH to clone your repo (altough you should be, HTTPs is no longer supported in GitHub).
+- Run in an existing GIT repository (cloned with either SSH or HTTPs)
+- Have all base branches created (at least locally).
+    - `gitflow init` command coming soon!
 
 ### System Requirements
 Here is the list of requirements needed:

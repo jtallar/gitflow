@@ -371,7 +371,7 @@ gitflow_load_settings() {
 	export DOT_GIT_DIR="$(cd ${DOT_GIT_DIR} >/dev/null 2>&1 && pwd)"
 	export HOOKS_DIR="$(git config --get gitflow.path.hooks || echo ${DOT_GIT_DIR}/hooks)" # the second option is used to support previous versions of git-flow
 	export ORIGIN=$(git config --get remote.origin.url)
-	AUX_VARIABLE=$(awk -F 'git@github.com:' '{print $2}' <<< "$ORIGIN")
+	AUX_VARIABLE=$(awk -F '(git@github.com:)|(https://github.com/)' '{print $2}' <<< "$ORIGIN")
 	# Neither usernames nor repositories can have /
 	export GIT_USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
 	export GIT_REPOSITORY=$(cut -d'/' -f2- <<< "${AUX_VARIABLE%.git}")

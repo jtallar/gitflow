@@ -151,6 +151,12 @@ git_is_clean_working_tree() {
 	# Check for Uncommited changes
 	git diff-index --cached --quiet --ignore-submodules HEAD -- || return 2
 
+	# Check for Merge in progress. 
+	# Don't know why sometimes there are no uncommited changes and all conflicts are fixed. 
+	# But you are still merging, so this would be needed.
+	# Won't change it because it could be breaking more than it solves
+	# git merge HEAD &> /dev/null || return 3
+
 	return 0
 }
 
@@ -1022,7 +1028,7 @@ gitflow_merge_branch_to_base() {
 		echo "    git commit"
 		echo
 		echo "You can then complete the finish by running it again:"
-		echo "    gitflow feature finish $feature_name"
+		echo "    $EXECUTED_CMD"
 		echo
 		echo "Alternatively, you can cancel your merge by running"
 		echo "    git merge --abort"

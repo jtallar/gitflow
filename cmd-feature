@@ -302,10 +302,18 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 		gitflow_set_name_as_current_branch
 	fi
 	require_feature_name_or_aux
+	local is_aux_branch="$?"
 
 	# Keeping both branches implies the --keep flag to be true.
 	if flag keepremote && flag keeplocal; then
 		FLAGS_keep=$FLAGS_TRUE
+	fi
+
+	# If aux branch name could have changed and we are in an aux branch
+	# Then we need the user to input the actual branch name
+	if flag aux_branch_name && [ "$is_aux_branch" -eq 1 ]; then
+		gitflow_set_name $(read_input "Feature branch name: " "$BRANCH")
+		echo
 	fi
 
 	# Sanity checks
@@ -415,6 +423,8 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 #			 Helps when solving conflicts, to resume execution
 #
 helper_finish_merges(){
+	local INPUT_HELPER_FILENAME="$DOT_GIT_DIR/.gitflow/INPUT_$BRANCH"
+
 	local keepmsg last_pr_body print_arr all_steps
 	local step_num stage_num step_count
 
@@ -471,7 +481,19 @@ helper_finish_merges(){
 			if [ -z "$aux_branch_prefix" ] || [ "$aux_branch_prefix" = "null" ]; then
 				die "Missing aux-branch-prefix property in finish-step $step_count"
 			fi
+
+			# If needed, prompt for aux branch name
 			aux_branch_name="$aux_branch_prefix$BRANCH"
+			if flag aux_branch_name; then
+				if [ -f "$INPUT_HELPER_FILENAME" ]; then
+					aux_branch_name=$(cat "$INPUT_HELPER_FILENAME")
+				else
+					echo
+					aux_branch_name="$aux_branch_name$(read_input "Name for aux branch to $base: $aux_branch_name")"
+					echo
+					echo "$aux_branch_name" > "$INPUT_HELPER_FILENAME"
+				fi
+			fi
 
 			head="$aux_branch_name"
 
@@ -522,7 +544,7 @@ helper_finish_merges(){
 			pr_title="$head"
 			if flag pr_title; then
 				echo
-				pr_title=$(read_input "Title for the PR from $head to $base" "$pr_title")
+				pr_title=$(read_input "Title for the PR from $head to $base: " "$pr_title")
 				echo
 			fi
 
@@ -558,6 +580,9 @@ helper_finish_merges(){
 		# Next steps should be done entirely
 		stage_num=0
 		print_arr+=("")
+
+		# Delete input files if exist
+		rm -f "$INPUT_HELPER_FILENAME"
 	done
 	print_arr+=("--------------------------------------------")
 

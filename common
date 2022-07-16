@@ -375,6 +375,9 @@ gitflow_load_settings() {
 	# Neither usernames nor repositories can have /
 	export GIT_USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
 	export GIT_REPOSITORY=$(cut -d'/' -f2- <<< "${AUX_VARIABLE%.git}")
+
+	# Create auxiliary directory for temporary files if not exists
+	mkdir -p "$DOT_GIT_DIR/.gitflow"
 }
 
 #
@@ -628,9 +631,23 @@ gitflow_require_base_arg() {
 	fi
 }
 
-gitflow_set_name_as_current_branch() {
-	BRANCH=$(git_current_branch)
+#
+# Set branch name variables
+# 
+# $1 branch_name - Branch to merge into other branch
+#
+gitflow_set_name() {
+	local branch_name
+
+	branch_name="$1"
+	[ -n "$1" ] || die "Missing branch name"
+
+	BRANCH="$branch_name"
 	NAME=${BRANCH}
+}
+
+gitflow_set_name_as_current_branch() {
+	gitflow_set_name $(git_current_branch)
 }
 
 gitflow_use_current_branch_name() {
@@ -687,6 +704,9 @@ gitflow_use_current_branch_name_from_aux() {
 	exit 1
 }
 
+#
+# Returns 0 if feature branch, 1 if aux branch
+#
 require_feature_name_or_aux() {
 	local branch_name root_branch 
 	local all_steps branch_prefixes aux_branch aux_branch_prefix
@@ -716,7 +736,7 @@ require_feature_name_or_aux() {
 				if startswith "$root_branch" "$HU_PREFIX"; then
 					BRANCH=$root_branch
 					NAME=${BRANCH}
-					return 0
+					return 1
 				fi
 			fi
 		done
@@ -986,7 +1006,6 @@ gitflow_merge_branch_to_base() {
 		# Oops.. we have a merge conflict!
 		# Write the given $branch and $base to a temporary file as we will
 		# be needing it later.
-		mkdir -p "$DOT_GIT_DIR/.gitflow"
 		echo "$branch\\$base\\$step_num\\$stage_num\\$CONFIG_SHA_SUM" > "$DOT_GIT_DIR/.gitflow/MERGE_BASE_$feature_name"
 		echo
 		echo "Summary of completed actions:"
@@ -1391,8 +1410,8 @@ get_jira_url() {
 #
 # Read user input
 #
-# $1 prompt - Prompt message before input (no : or default needed)
-# $2 default - Value to use if no value is provided (defaults to '')
+# $1 prompt - Prompt message before input (no spaces or : will be added to it)
+# $2 default - Initial value to use as input (defaults to '')
 #
 # Returns input text (or default if provided)
 #
@@ -1405,13 +1424,7 @@ read_input() {
 	[ -n "$1" ] || die "Missing prompt message"
 	[ -n "$2" ] || default=""
 
-	if [ -n "$default" ]; then
-		prompt="$prompt [$default]"
-	fi
-
-	read -p "$prompt: " value
-	value=${value:-$default}
-
+	read -p "$prompt" -ei "$default" value
 	echo "$value"
 }
 

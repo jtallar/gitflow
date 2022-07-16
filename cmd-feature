@@ -257,6 +257,8 @@ r,[no]rebase           Rebase before merging
 p,[no]preserve-merges  Preserve merges while rebasing
 S,[no]squash           Squash feature during merges
 no-ff!                 Never fast-forward during merges
+aux-branch-name        Prompt for auxiliary branch names
+pr-title			   Prompt for PR titles
 --
 k,[no]keep             Always true -- Keep branch after performing finish
 keepremote!        	   Always true -- Keep the remote branch
@@ -275,6 +277,8 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	DEFINE_boolean 'force_delete' false "force delete feature branch after finish" D
 	DEFINE_boolean 'squash' false "squash feature during merge" S
 	DEFINE_boolean 'no-ff!' false "Don't fast-forward ever during merge "
+	DEFINE_boolean 'aux-branch-name' false "prompt for auxiliary branch names"
+	DEFINE_boolean 'pr-title' false "prompt for PR titles"
 
 	# Override defaults with values from config
 	gitflow_override_flag_boolean   "feature.finish.fetch"             "fetch"
@@ -287,6 +291,8 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 	gitflow_override_flag_boolean   "feature.finish.force-delete"      "force_delete"
 	gitflow_override_flag_boolean   "feature.finish.squash"            "squash"
 	gitflow_override_flag_boolean   "feature.finish.no-ff"             "no_ff"
+	gitflow_override_flag_boolean   "feature.finish.aux-branch-name"   "aux_branch_name"
+	gitflow_override_flag_boolean   "feature.finish.pr-title"          "pr_title"
 
 	# Parse arguments
 	parse_args "$@"
@@ -296,10 +302,18 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 		gitflow_set_name_as_current_branch
 	fi
 	require_feature_name_or_aux
+	local is_aux_branch="$?"
 
 	# Keeping both branches implies the --keep flag to be true.
 	if flag keepremote && flag keeplocal; then
 		FLAGS_keep=$FLAGS_TRUE
+	fi
+
+	# If aux branch name could have changed and we are in an aux branch
+	# Then we need the user to input the actual branch name
+	if flag aux_branch_name && [ "$is_aux_branch" -eq 1 ]; then
+		gitflow_set_name $(read_input "Feature branch name: " "$BRANCH")
+		echo
 	fi
 
 	# Sanity checks
@@ -409,6 +423,8 @@ D,[no]force_delete     Unused -- Force delete feature branch after finish
 #			 Helps when solving conflicts, to resume execution
 #
 helper_finish_merges(){
+	local INPUT_HELPER_FILENAME="$DOT_GIT_DIR/.gitflow/INPUT_$BRANCH"
+
 	local keepmsg last_pr_body print_arr all_steps
 	local step_num stage_num step_count
 
@@ -429,22 +445,22 @@ helper_finish_merges(){
 		fi
 
 		local base aux_branch aux_branch_prefix aux_branch_name head with_pr
-		local issue_number return_code pr_body tmp_file
+		local issue_number return_code pr_title pr_body tmp_file
 
 		# Get properties from config
 		base=$(trim_line_quotes $(json_get_key "$step" '."base"'))
 		if [ -z "$base" ] || [ "$base" = "null" ]; then
-			die "Missing aux-branch-prefix property in finish-step $step_count"
+			die "Missing base property in finish-step $step_count"
 		fi
 
 		aux_branch=$(json_get_key "$step" '."aux-branch"')
 		if [ -z "$aux_branch" ] || [ "$aux_branch" = "null" ]; then
-			die "Missing aux-branch-prefix property in finish-step $step_count"
+			die "Missing aux-branch property in finish-step $step_count"
 		fi
 
 		with_pr=$(json_get_key "$step" '."with-pr"')
 		if [ -z "$with_pr" ] || [ "$with_pr" = "null" ]; then
-			die "Missing aux-branch-prefix property in finish-step $step_count"
+			die "Missing with-pr property in finish-step $step_count"
 		fi
 
 		print_arr+=("---------------- $base ----------------")
@@ -465,7 +481,19 @@ helper_finish_merges(){
 			if [ -z "$aux_branch_prefix" ] || [ "$aux_branch_prefix" = "null" ]; then
 				die "Missing aux-branch-prefix property in finish-step $step_count"
 			fi
+
+			# If needed, prompt for aux branch name
 			aux_branch_name="$aux_branch_prefix$BRANCH"
+			if flag aux_branch_name; then
+				if [ -f "$INPUT_HELPER_FILENAME" ]; then
+					aux_branch_name=$(cat "$INPUT_HELPER_FILENAME")
+				else
+					echo
+					aux_branch_name="$aux_branch_name$(read_input "Name for aux branch to $base: $aux_branch_name")"
+					echo
+					echo "$aux_branch_name" > "$INPUT_HELPER_FILENAME"
+				fi
+			fi
 
 			head="$aux_branch_name"
 
@@ -512,13 +540,21 @@ helper_finish_merges(){
 				labels="[]"
 			fi
 			
+			# If needed, prompt for PR title
+			pr_title="$head"
+			if flag pr_title; then
+				echo
+				pr_title=$(read_input "Title for the PR from $head to $base: " "$pr_title")
+				echo
+			fi
+
 			# Open editor to write PR body
 			pr_body="$last_pr_body"
-			pr_body=$(get_input_editor "$pr_body" "pr_from_${head}_to_${base}")
+			pr_body=$(get_input_editor "$pr_body" "$pr_title")
 			last_pr_body="$pr_body"
 
-			# Create PR from $head branch to $base branch if not open (label: $base)
-			issue_number=$(github_create_pr "$head" "$base" "$labels" "$pr_body")
+			# Create PR from $head branch to $base branch if not open
+			issue_number=$(github_create_pr "$head" "$base" "$labels" "$pr_title" "$pr_body")
 			return_code="$?"
 			if [ "$return_code" -eq 0 ]; then
 				print_arr+=("- Created PR from $head to $base: https://github.com/$GIT_USERNAME/$GIT_REPOSITORY/pull/$issue_number")
@@ -544,6 +580,9 @@ helper_finish_merges(){
 		# Next steps should be done entirely
 		stage_num=0
 		print_arr+=("")
+
+		# Delete input files if exist
+		rm -f "$INPUT_HELPER_FILENAME"
 	done
 	print_arr+=("--------------------------------------------")
 

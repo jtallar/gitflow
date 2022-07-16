@@ -16,7 +16,9 @@
             "preserve-merges": false,
             "push": false,
             "squash": false,
-            "no-ff!": false
+            "no-ff!": false,
+            "aux-branch-name": false,
+            "pr-title": false
         },
         "rebase": {
             "interactive": false,

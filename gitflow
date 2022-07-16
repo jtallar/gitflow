@@ -165,6 +165,7 @@ main() {
 	fi
 	if [ $SUBACTION != 'default' ]; then
 		FLAGS_PARENT="./gitflow $SUBCOMMAND $SUBACTION"
+		EXECUTED_CMD="gitflow $SUBCOMMAND ${SUBACTION}$((($#)) && printf ' %q' "$@")"
 	fi
 
 	cmd_$SUBACTION "$@" "${_short_branch_name}"

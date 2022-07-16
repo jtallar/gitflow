@@ -1172,6 +1172,7 @@ github_list_all_pr() {
 # $1 head 	- Head branch to merge from
 # $2 base 	- Base branch to merge to
 # $3 labels - Labels for the PR (optional)
+# $4 title 	- Title of the PR (optional)
 # $4 body 	- Body of the PR (optional)
 #
 # Title will be set to head
@@ -1180,21 +1181,23 @@ github_list_all_pr() {
 # Returns 0 if OK, 1 if error, 2 if unauthorized
 #
 github_create_pr() {
-	local head base body response issue_number req_body
+	local head base labels title body response issue_number req_body
 
 	head="$1"
 	base="$2"
 	labels="$3"
-	body="$4"
+	title="$4"
+	body="$5"
 	
 	[ -n "$1" ] || die "Missing head"
 	[ -n "$2" ] || die "Missing base"
 	[ -n "$3" ] || labels="[]"
-	[ -n "$4" ] || body=""
+	[ -n "$4" ] || title="$head"
+	[ -n "$5" ] || body=""
 
-	body=$(string_to_json "$4") # Already includes starting and ending " "
+	body=$(string_to_json "$body") # Already includes starting and ending " "
 
-	req_body="{\"title\":\"$head\",\"base\":\"$base\", \"head\":\"$GIT_USERNAME:$head\", \"body\":$body}"
+	req_body="{\"title\":\"$title\",\"base\":\"$base\", \"head\":\"$GIT_USERNAME:$head\", \"body\":$body}"
 	response=$(github_api_post "/repos/$GIT_USERNAME/$GIT_REPOSITORY/pulls" "$req_body")
 
 	# Adding label to PR

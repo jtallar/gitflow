@@ -1198,7 +1198,7 @@ github_list_all_pr() {
 # $2 base 	- Base branch to merge to
 # $3 labels - Labels for the PR (optional)
 # $4 title 	- Title of the PR (optional)
-# $4 body 	- Body of the PR (optional)
+# $5 body 	- Body of the PR (optional)
 #
 # Title will be set to head
 #
@@ -1419,7 +1419,7 @@ get_jira_url() {
 # $1 prompt - Prompt message before input (no spaces or : will be added to it)
 # $2 default - Initial value to use as input (defaults to '')
 #
-# Returns input text (or default if provided)
+# Returns input text
 #
 read_input() {
 	local prompt default value

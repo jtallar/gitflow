@@ -1386,6 +1386,33 @@ get_jira_url() {
 }
 
 #
+# Read user input
+#
+# $1 prompt - Prompt message before input (no : or default needed)
+# $2 default - Value to use if no value is provided (defaults to '')
+#
+# Returns input text (or default if provided)
+#
+read_input() {
+	local prompt default value
+
+	prompt="$1"
+	default="$2"
+	
+	[ -n "$1" ] || die "Missing prompt message"
+	[ -n "$2" ] || default=""
+
+	if [ -n "$default" ]; then
+		prompt="$prompt [$default]"
+	fi
+
+	read -p "$prompt: " value
+	value=${value:-$default}
+
+	echo "$value"
+}
+
+#
 # run_filter_hook
 #
 # Looks for a Git hook script called as defined by the first variable

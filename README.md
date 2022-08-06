@@ -65,6 +65,11 @@ You can customize `gitflow` to adjust to your project's branching model. To do s
     - `with-pr`: boolean that states if a PR should be created or if merging should be done during execution
     - `labels`: array of strings with the labels to apply to the PR. Defaults to [].
 
+### Customization
+If you want to customize the default editor for Git and PR input, you can set the environment variables `VISUAL` or `EDITOR`. The order of priorities between variables is the following:
+
+> $VISUAL --> $EDITOR --> nano
+
 ## Execution
 Run gitflow with
     `gitflow <subcommand>`

@@ -368,6 +368,14 @@ gitflow_get_remote_default_branch() {
 	git remote show origin | sed -n '/HEAD branch/s/.*: //p'
 }
 
+gitflow_get_editor_cmd() {
+	if [ -z $VISUAL ]; then
+		echo ${EDITOR-nano}
+	else
+		echo $VISUAL
+	fi
+}
+
 # Loading settings that can be overridden using git config
 gitflow_load_settings() {
 	local AUX_VARIABLE
@@ -381,6 +389,9 @@ gitflow_load_settings() {
 	# Neither usernames nor repositories can have /
 	export GIT_USERNAME=$(cut -d'/' -f1 <<< "$AUX_VARIABLE")
 	export GIT_REPOSITORY=$(cut -d'/' -f2- <<< "${AUX_VARIABLE%.git}")
+
+	# Set editor command to use
+	export GITFLOW_EDITOR=$(gitflow_get_editor_cmd)
 
 	# Create auxiliary directory for temporary files if not exists
 	mkdir -p "$DOT_GIT_DIR/.gitflow"
@@ -1299,13 +1310,13 @@ github_pr_search_url() {
 get_input_editor() {
 	local tmp_file input tmp_filename
 	
-	tmp_filename="$(filename_encode "$2")"
-	[ -n "$2" ] || tmp_filename="input.tmp"
+	tmp_filename="$(filename_encode "$2").md"
+	[ -n "$2" ] || tmp_filename="input.md"
 
 	mkdir -p "$DOT_GIT_DIR/.gitflow"
 	tmp_file="$DOT_GIT_DIR/.gitflow/$tmp_filename"
 	echo "$1" > "$tmp_file"
-	${VISUAL-nano} "$DOT_GIT_DIR/.gitflow/$tmp_filename" > $(tty)
+	$GITFLOW_EDITOR "$DOT_GIT_DIR/.gitflow/$tmp_filename" > $(tty)
 	input=$(cat "$tmp_file")
 	rm "$tmp_file"
 
